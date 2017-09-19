@@ -74,10 +74,10 @@ var main = function () {
   if( iter < 24 ){
 	   update(mesh);
   }
-  if ( iter > 440 && iter < 600){
+  if ( iter > 290 && iter < 300){
     reset(mesh);
   }
-  if ( iter == 600){
+  if ( iter == 300){
     mesh.geometry = new THREE.IcosahedronGeometry(1,3);
     attract();
     iter = 1;
