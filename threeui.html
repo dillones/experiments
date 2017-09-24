@@ -4,7 +4,7 @@
   <title>∇</title>
   <meta name="viewport" content="width=360, initial-scale=1.0, maximum-scale=1.0">
   <!-- <link href="https://fonts.googleapis.com/icon?family=Material+Icons"rel="stylesheet"> -->
-  <!-- <link href="https://fonts.googleapis.com/css?family=Lekton" rel="stylesheet"> -->
+  <link href="https://fonts.googleapis.com/css?family=Lekton" rel="stylesheet">
   <style>
     body {
       background: #000;
@@ -17,7 +17,6 @@
 </head>
 <!-- <body oncontextmenu="return false;"> -->
 <body>
-<link href="https://fonts.googleapis.com/css?family=Lekton" rel="stylesheet">
 
 <script src="https://ajax.googleapis.com/ajax/libs/threejs/r84/three.min.js"></script>
 <script>
@@ -29,7 +28,6 @@ const ui = new Ui();
 let renderer, scene, camera, mesh;
 
 function init(){
-  console.log('Initialized');
 
   renderer = new THREE.WebGLRenderer();
   renderer.setSize( window.innerWidth, window.innerHeight );
@@ -52,6 +50,8 @@ function init(){
   scene.add(light);
 
   ui.connect();
+  console.log(document.body.style.font);
+  console.log('Initialized');
 
   main();
 }
@@ -80,8 +80,12 @@ function Ui(){
   this.font;
   this.update;
 
+  this.touch = new THREE.Vector2();
+  let TOUCH = false;
+
   let timer, framerate;
   let time, now, last, fps;
+  let rotateY;
 
   let u = 20;
   let row = [];
@@ -90,10 +94,14 @@ function Ui(){
   let rows, cols;
   let w, h;
 
+  let requestUpdates = [];
+
   this.connect = function(){
 
     w = 360;
     h = window.innerHeight;
+
+    let fill = '#111111';
 
     this.canvas = document.createElement('canvas');
     this.canvas.id = 'ui';
@@ -105,7 +113,7 @@ function Ui(){
 
     this.ctx = this.canvas.getContext('2d');
     this.ctx.font = '13px Lekton';
-    this.ctx.fillStyle = '#111111';
+    this.ctx.fillStyle = fill;
     this.ctx.textBaseline = 'top';
 
     cols = Math.floor(window.innerWidth/u);
@@ -123,27 +131,32 @@ function Ui(){
     console.log(col[1]);
     console.log(col[cols-2]);
 
-    const labelTitle = new this.Label('Three User Interface Experiment', col[1], row[2], w/2-u, u);
-    labelTitle.connect('left');
+    const labelTitle = new this.Label('Three User Interface Experiment', col[1], row[2], w/2-u, u).connect('left');
 
-    const labelDate = new this.Label('♥', col[1], row[3], w/2-u, u);
-    labelDate.connect('left');
+    const labelDate = new this.Label('♥', col[1], row[3], w/2-u, u).connect('left');
 
-    const labelTime = new this.Label('Time', w-col[1], row[2], w/2-u, u);
-    labelTime.connect('right');
+    const labelTime = new this.Label('Time', w-col[1], row[2], w/2-u, u).connect('right');
     timer = new this.Label('', w-col[1], row[3], -w/2-u, u);
 
     const labelFps = new this.Label('Framerate', w-col[1], row[5], w/2-u, u).connect('right');
-    framerate = new this.Label('', w-col[1], row[6], -w/2-u, u);
+    framerate      = new this.Label('', w-col[1], row[6], -w/2-u, u);
 
-    const range = new this.Range('RANGE', 10, 0, 10, col[1], row[8], w-u*2, 2).connect();
+    const labelRotate = new this.Label('Rotation', col[1], row[8], w/2-u, u).connect('left');
+    rotateY = new this.Range('rotateY', 10, 0, 10, col[1], row[10], w-u*2, 1).connect();
 
     time = window.performance.now();
     last = window.performance.now();
 
     this.update = this.main;
 
-    window.addEventListener( 'mousedown', requestLog );
+    window.addEventListener( 'touchstart', this.touchstart);
+    window.addEventListener( 'touchmove' , this.touchmove);
+    window.addEventListener( 'touchend'  , this.touchend );
+
+    window.addEventListener( 'mousedown', this.touchstart );
+    window.addEventListener( 'mousemove', this.touchmove );
+    window.addEventListener( 'mouseup'  , this.touchend );
+
     console.log('Ui Connected');
   }
 
@@ -154,8 +167,16 @@ function Ui(){
     this.ctx = null;
     this.font = null;
     this.update = function(){};
+    this.requestUpdates = [];
+    console.log(requestUpdates);
 
-    window.removeEventListener( 'mousedown', requestLog );
+    window.removeEventListener( 'touchstart', this.touchstart);
+    window.removeEventListener( 'touchmove' , this.touchmove);
+    window.removeEventListener( 'touchend'  , this.touchend );
+
+    window.removeEventListener( 'mousedown', this.touchstart );
+    window.removeEventListener( 'mousemove', this.touchmove );
+    window.removeEventListener( 'mouseup'  , this.touchend );
 
   }
 
@@ -168,6 +189,12 @@ function Ui(){
       framerate.update(Math.floor(1000/fps));
       last = window.performance.now();
 
+      if( TOUCH ){
+        for ( let i in requestUpdates ){
+          requestUpdates[i].update();
+        }
+      }
+
   }
 
   // Label Object
@@ -179,7 +206,6 @@ function Ui(){
       scope.ctx.fillText( text, x, y );
       scope.ctx.closePath();
       console.log('Label Connected', text);
-
     }
 
     this.update = function(value){
@@ -189,15 +215,6 @@ function Ui(){
       scope.ctx.fillText( value, x, y );
       scope.ctx.closePath();
       text = value;
-
-    }
-
-    requestLog = function(event){
-
-      console.log( ( window.performance.now() - last)/1000 );
-      console.log( reference - (window.performance.now() - last)/1000 );
-      last = window.performance.now();
-
     }
   }
 
@@ -206,26 +223,73 @@ function Ui(){
 
     this.connect = function(){
 
+      y = y+h/2;
+
+      this.position = new THREE.Vector2(x+value-u/4, y-u/4);
+
       scope.ctx.beginPath();
-      scope.ctx.fillStyle = '#FFFFFF';
-      scope.ctx.fillRect(x, y+h/2, w, h);
-      scope.ctx.fillStyle = '#111111';
+      scope.ctx.fillRect(x, y, w, h);
       scope.ctx.closePath();
 
+      scope.ctx.beginPath();
+      scope.ctx.fillRect(this.position.x, this.position.y, u/2+1, u/2+1);
+      scope.ctx.closePath();
+
+      requestUpdates.push(this);
       console.log('Range Connected', id);
-
     }
 
-    this.update = function(text){
+    this.update = function(){
 
-    }
+      const c0 = ( scope.touch.x > x+value && scope.touch.x-u/2 < w );
+      const c1 = ( scope.touch.distanceTo(this.position) < u*2 );
+      const c2 = ( Math.abs(scope.touch.y-this.position.y) < u * 2 );
 
-    requestLog = function(event){
+      if( c0 && ( c1 || c2 ) ){
 
-      console.log( event.clientX, event.clientY );
+        this.position.x = scope.touch.x-u/4;
+        scope.ctx.beginPath();
+        scope.ctx.clearRect(x-u,y-u,w+u,u*2);
+        scope.ctx.fillRect(x, y, w, h);
+        scope.ctx.fillRect(this.position.x, this.position.y, u/2+1, u/2+1);
+        scope.ctx.closePath();
 
+      }
     }
   }
+
+  this.touchstart = function(event){
+    TOUCH = true;
+      switch(event.type){
+        case( 'mousedown'):
+          scope.touch.set( event.clientX, event.clientY );
+        break;
+        case( 'touchstart'):
+          scope.touch.set( event.touches[0].clientX, event.touches[0].clientY );
+      break;
+    }
+  }
+
+  this.touchmove = function(event){
+    switch(event.type){
+      case( 'mousemove'):
+        scope.touch.set( event.clientX, event.clientY );
+      break;
+      case( 'touchmove'):
+        scope.touch.set( event.touches[0].clientX, event.touches[0].clientY );
+      break;
+    }
+  }
+
+  this.touchend = function(event){
+    TOUCH = false;
+  }
+
+  this.requestLog = function(event){
+    console.log(event.type);
+    console.log(event);
+  }
+
 }
 
 </script>
