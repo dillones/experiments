@@ -22,10 +22,13 @@
 <script src="https://ajax.googleapis.com/ajax/libs/threejs/r84/three.min.js"></script>
 <script>
 
+window.onload = init;
+window.onresize = resize;
+
 const ui = new Ui();
 let renderer, scene, camera, mesh;
 
-(function init(){
+function init(){
   console.log('Initialized');
 
   renderer = new THREE.WebGLRenderer();
@@ -51,8 +54,16 @@ let renderer, scene, camera, mesh;
   ui.connect();
 
   main();
+}
 
-})();
+function resize(){
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+
+  ui.disconnect();
+  ui.connect();
+}
 
 function main(){
   window.requestAnimationFrame(main);
@@ -81,12 +92,12 @@ function Ui(){
 
   this.connect = function(){
 
-    w = window.innerWidth;
+    w = 360;
     h = window.innerHeight;
 
     this.canvas = document.createElement('canvas');
     this.canvas.id = 'ui';
-    this.canvas.width = window.innerWidth;
+    this.canvas.width = w;
     this.canvas.height = window.innerHeight;
     this.canvas.style.position = 'fixed';
     this.canvas.style.zIndex = '100';
@@ -112,20 +123,20 @@ function Ui(){
     console.log(col[1]);
     console.log(col[cols-2]);
 
-    const labelTitle = new this.Label('Three User Interface Experiment', col[1], row[2], window.innerWidth/2-u, u);
+    const labelTitle = new this.Label('Three User Interface Experiment', col[1], row[2], w/2-u, u);
     labelTitle.connect('left');
 
-    const labelDate = new this.Label('♥', col[1], row[3], window.innerWidth/2-u, u);
+    const labelDate = new this.Label('♥', col[1], row[3], w/2-u, u);
     labelDate.connect('left');
 
-    const labelTime = new this.Label('Time', w-col[1], row[2], window.innerWidth/2-u, u);
+    const labelTime = new this.Label('Time', w-col[1], row[2], w/2-u, u);
     labelTime.connect('right');
+    timer = new this.Label('', w-col[1], row[3], -w/2-u, u);
 
-    timer = new this.Label('', w-col[1], row[3], -col[cols/2], u);
+    const labelFps = new this.Label('Framerate', w-col[1], row[5], w/2-u, u).connect('right');
+    framerate = new this.Label('', w-col[1], row[6], -w/2-u, u);
 
-    const labelFps = new this.Label('Framerate', w-col[1], row[5], window.innerWidth/2-u, u).connect('right');
-
-    framerate = new this.Label('', w-col[1], row[6], -window.innerWidth/2+u, u);
+    const range = new this.Range('RANGE', 10, 0, 10, col[1], row[8], w-u*2, 2).connect();
 
     time = window.performance.now();
     last = window.performance.now();
@@ -144,8 +155,7 @@ function Ui(){
     this.font = null;
     this.update = function(){};
 
-    window.addEventListener( 'mousedown', requestLog );
-
+    window.removeEventListener( 'mousedown', requestLog );
 
   }
 
@@ -191,32 +201,28 @@ function Ui(){
     }
   }
 
-  this.Button = function(text, x, y, w, h){
+  // Range Object
+  this.Range = function( id, value, lo, hi, x, y, w, h ){
 
     this.connect = function(){
 
       scope.ctx.beginPath();
-      scope.ctx.fillText( text, x, y );
+      scope.ctx.fillStyle = '#FFFFFF';
+      scope.ctx.fillRect(x, y+h/2, w, h);
+      scope.ctx.fillStyle = '#111111';
       scope.ctx.closePath();
-      console.log('Label Connected', text);
+
+      console.log('Range Connected', id);
 
     }
 
     this.update = function(text){
-      scope.ctx.textAlign = 'right';
-
-      scope.ctx.beginPath();
-      scope.ctx.clearRect(x,y,w,h);
-      scope.ctx.fillText( text, x, y );
-      scope.ctx.closePath();
 
     }
 
     requestLog = function(event){
 
-      console.log( ( window.performance.now() - last)/1000 );
-      console.log( reference - (window.performance.now() - last)/1000 );
-      last = window.performance.now();
+      console.log( event.clientX, event.clientY );
 
     }
   }
