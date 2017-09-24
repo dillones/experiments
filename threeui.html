@@ -1,5 +1,4 @@
 <html>
-
 <head>
   <title>∇</title>
   <meta name="viewport" content="width=360, initial-scale=1.0, maximum-scale=1.0">
@@ -25,7 +24,7 @@ window.onload = init;
 window.onresize = resize;
 
 const ui = new Ui();
-let renderer, scene, camera, mesh;
+let renderer, scene, camera, mesh, rotation;
 
 function init(){
 
@@ -50,7 +49,6 @@ function init(){
   scene.add(light);
 
   ui.connect();
-  console.log(document.body.style.font);
   console.log('Initialized');
 
   main();
@@ -68,7 +66,7 @@ function resize(){
 function main(){
   window.requestAnimationFrame(main);
   renderer.render(scene, camera);
-  mesh.rotateY(0.005);
+  mesh.rotateY(rotation);
   ui.update();
 }
 
@@ -85,7 +83,7 @@ function Ui(){
 
   let timer, framerate;
   let time, now, last, fps;
-  let rotateY;
+  let rangeRotate, valRotate;
 
   let u = 20;
   let row = [];
@@ -127,10 +125,6 @@ function Ui(){
       row[i] = i * u;
     }
 
-    console.log(cols);
-    console.log(col[1]);
-    console.log(col[cols-2]);
-
     const labelTitle = new this.Label('Three User Interface Experiment', col[1], row[2], w/2-u, u).connect('left');
 
     const labelDate = new this.Label('♥', col[1], row[3], w/2-u, u).connect('left');
@@ -142,7 +136,8 @@ function Ui(){
     framerate      = new this.Label('', w-col[1], row[6], -w/2-u, u);
 
     const labelRotate = new this.Label('Rotation', col[1], row[8], w/2-u, u).connect('left');
-    rotateY = new this.Range('rotateY', 10, 0, 10, col[1], row[10], w-u*2, 1).connect();
+    valRotate = new this.Label('-', w-col[1], row[8], -w/2+u, u);
+    rangeRotate = new this.Range('rotate', 10, 0, 320, col[1], row[10], w-u*2, 1).connect();
 
     time = window.performance.now();
     last = window.performance.now();
@@ -168,7 +163,6 @@ function Ui(){
     this.font = null;
     this.update = function(){};
     this.requestUpdates = [];
-    console.log(requestUpdates);
 
     window.removeEventListener( 'touchstart', this.touchstart);
     window.removeEventListener( 'touchmove' , this.touchmove);
@@ -193,12 +187,13 @@ function Ui(){
         for ( let i in requestUpdates ){
           requestUpdates[i].update();
         }
+
       }
 
   }
 
   // Label Object
-  this.Label = function(text, x, y, w, h){
+  this.Label = function( text, x, y, w, h){
 
     this.connect = function(align){
       scope.ctx.textAlign = align;
@@ -221,6 +216,9 @@ function Ui(){
   // Range Object
   this.Range = function( id, value, lo, hi, x, y, w, h ){
 
+    this.value = value+u;
+    console.log('Remember to remove this line...'); rotation = (310/2-this.value) * 0.0001;
+
     this.connect = function(){
 
       y = y+h/2;
@@ -241,7 +239,7 @@ function Ui(){
 
     this.update = function(){
 
-      const c0 = ( scope.touch.x > x+value && scope.touch.x-u/2 < w );
+      const c0 = ( scope.touch.x >= x+u/4 && scope.touch.x <= w+u-u/4 );
       const c1 = ( scope.touch.distanceTo(this.position) < u*2 );
       const c2 = ( Math.abs(scope.touch.y-this.position.y) < u * 2 );
 
@@ -249,11 +247,15 @@ function Ui(){
 
         this.position.x = scope.touch.x-u/4;
         scope.ctx.beginPath();
-        scope.ctx.clearRect(x-u,y-u,w+u,u*2);
+        scope.ctx.clearRect(x-1, y-u/4,w+u+1,u);
         scope.ctx.fillRect(x, y, w, h);
         scope.ctx.fillRect(this.position.x, this.position.y, u/2+1, u/2+1);
         scope.ctx.closePath();
+        this.value = (this.position.x-u);
 
+        valRotate.update(this.value.toString());
+
+        console.log('Remember to remove this line...'); rotation = (310/2-this.value) * 0.0001;
       }
     }
   }
