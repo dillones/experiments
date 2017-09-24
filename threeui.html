@@ -41,13 +41,15 @@ let renderer, scene, camera, mesh;
   renderer.domElement.style.zIndex = 0;
 
   scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(120,window.innerWidth/window.innerHeight);
+  camera = new THREE.PerspectiveCamera(75,window.innerWidth/window.innerHeight);
 
-  let geometry = new THREE.IcosahedronGeometry(1,1);
-  let material = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
+  const light    = new THREE.HemisphereLight(0xffece0, 0xe6546e);
+  const geometry = new THREE.IcosahedronGeometry(2,2);
+  const material = new THREE.MeshPhongMaterial({ color: 0xffffff, shading: THREE.FlatShading, side: THREE.BackSide });
 
   mesh = new THREE.Mesh(geometry, material);
   scene.add(mesh);
+  scene.add(light);
 
   ui.connect(2);
 
@@ -70,7 +72,7 @@ function Ui(){
   this.font;
 
   let timer;
-  let time = window.performance.now();
+  let time, now, last;
 
   this.connect = function(density){
 
@@ -84,19 +86,21 @@ function Ui(){
 
     this.ctx = this.canvas.getContext('2d');
     this.ctx.font = '13px Lekton';
-    this.ctx.fillStyle = '#FFFFFF';
+    this.ctx.fillStyle = '#111111';
     this.ctx.textBaseline = 'top';
 
     // this.font = '13px Lekton';
 
-    const label = new this.Label('Special Stage', 20, 40, 20, 240);
+    const label = new this.Label('Three User Interface Experiment', 20, 40, 200, 40);
     label.connect();
 
-    timer = new this.Label('00:00', 20, 60, 120, 240);
-    //timer.connect();
+    timer = new this.Label('', window.innerWidth-40, 40, -200, 40);
 
+    time = window.performance.now();
+    last = window.performance.now();
+
+    window.addEventListener( 'mousedown', requestTime );
     console.log('Ui Connected');
-
   }
 
   this.disconnect = function(){
@@ -109,17 +113,14 @@ function Ui(){
   }
 
   this.update = function(){
-    time = (window.performance.now() - time) / 1000;
-    timer.update(time);
+
+      now = window.performance.now() - time;
+
+      timer.update( Math.floor(now/1000) );
+
   }
 
   this.Label = function(text, x, y, w, h){
-
-    // this.x = x;
-    // this.y = y;
-    // this.w = w;
-    // this.h = h;
-    // this.text = text;
 
     this.connect = function(){
 
@@ -131,8 +132,7 @@ function Ui(){
     }
 
     this.update = function(text){
-
-      text = Math.round(text);
+      scope.ctx.textAlign = 'right';
 
       scope.ctx.beginPath();
       scope.ctx.clearRect(x,y,w,h);
@@ -141,6 +141,14 @@ function Ui(){
 
     }
 
+    requestTime = function(){
+
+      var reference = 4.23;
+      console.log( ( window.performance.now() - last)/1000 );
+      console.log( reference - (window.performance.now() - last)/1000 );
+      last = window.performance.now();
+
+    }
   }
 }
 
