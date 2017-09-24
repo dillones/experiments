@@ -1,0 +1,149 @@
+<html>
+
+<head>
+  <title>∇</title>
+  <meta name="viewport" content="width=360, initial-scale=1.0, maximum-scale=1.0">
+  <!-- <link href="https://fonts.googleapis.com/icon?family=Material+Icons"rel="stylesheet"> -->
+  <link href="https://fonts.googleapis.com/css?family=Roboto+Mono" rel="stylesheet">
+  <style>
+    @import url('https://fonts.googleapis.com/css?family=Lekton');
+    body {
+      background: #000;
+      margin: 0;
+      color: #fff;
+      font-size: 48px;
+      overflow: hidden;
+      font-family: 'Lekton';
+      font-weight: lighter;
+      font-style: italic;
+      user-select: none;
+    }
+  </style>
+</head>
+<!-- <body oncontextmenu="return false;"> -->
+<body>
+<script src="https://ajax.googleapis.com/ajax/libs/threejs/r84/three.min.js"></script>
+<script>
+
+const ui = new Ui();
+let renderer, scene, camera, mesh;
+
+(function init(){
+  console.log('Initialized');
+
+  renderer = new THREE.WebGLRenderer();
+  renderer.setSize( window.innerWidth, window.innerHeight );
+  renderer.setPixelRatio(1);
+
+  renderer.domElement.id = 'renderer';
+  document.body.appendChild(renderer.domElement);
+  renderer.domElement.style.position = 'fixed';
+  renderer.domElement.style.zIndex = 0;
+
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(120,window.innerWidth/window.innerHeight);
+
+  let geometry = new THREE.IcosahedronGeometry(1,1);
+  let material = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
+
+  mesh = new THREE.Mesh(geometry, material);
+  scene.add(mesh);
+
+  ui.connect(2);
+
+  main();
+
+})();
+
+function main(){
+  window.requestAnimationFrame(main);
+  renderer.render(scene, camera);
+  mesh.rotateY(0.005);
+  ui.update();
+}
+
+function Ui(){
+
+  const scope = this;
+  this.canvas;
+  this.ctx;
+  this.font;
+
+  let timer;
+  let time = window.performance.now();
+
+  this.connect = function(density){
+
+    this.canvas = document.createElement('canvas');
+    this.canvas.id = 'ui';
+    this.canvas.width = window.innerWidth;
+    this.canvas.height = window.innerHeight;
+    this.canvas.style.position = 'fixed';
+    this.canvas.style.zIndex = '100';
+    document.body.appendChild(this.canvas);
+
+    this.ctx = this.canvas.getContext('2d');
+    this.ctx.font = '13px Lekton';
+    this.ctx.fillStyle = '#FFFFFF';
+    this.ctx.textBaseline = 'top';
+
+    // this.font = '13px Lekton';
+
+    const label = new this.Label('Special Stage', 20, 40, 20, 240);
+    label.connect();
+
+    timer = new this.Label('00:00', 20, 60, 120, 240);
+    //timer.connect();
+
+    console.log('Ui Connected');
+
+  }
+
+  this.disconnect = function(){
+
+    document.body.removeChild(this.canvas);
+    this.canvas = null;
+    this.ctx = null;
+    this.font = null;
+
+  }
+
+  this.update = function(){
+    time = (window.performance.now() - time) / 1000;
+    timer.update(time);
+  }
+
+  this.Label = function(text, x, y, w, h){
+
+    // this.x = x;
+    // this.y = y;
+    // this.w = w;
+    // this.h = h;
+    // this.text = text;
+
+    this.connect = function(){
+
+      scope.ctx.beginPath();
+      scope.ctx.fillText( text, x, y );
+      scope.ctx.closePath();
+      console.log('Label Connected', text);
+
+    }
+
+    this.update = function(text){
+
+      text = Math.round(text);
+
+      scope.ctx.beginPath();
+      scope.ctx.clearRect(x,y,w,h);
+      scope.ctx.fillText( text, x, y );
+      scope.ctx.closePath();
+
+    }
+
+  }
+}
+
+</script>
+</body>
+</html>
