@@ -17,14 +17,21 @@
 <!-- <body oncontextmenu="return false;"> -->
 <body>
 
-<script src="https://ajax.googleapis.com/ajax/libs/threejs/r84/three.min.js"></script>
+<!-- <script src="https://ajax.googleapis.com/ajax/libs/threejs/r84/three.min.js"></script> -->
+<script src="js/three.min.r84.js"></script>
 <script>
 
 window.onload = init;
 window.onresize = resize;
 
 const ui = new Ui();
-let renderer, scene, camera, mesh, rotation;
+var renderer, scene, camera, mesh;
+
+var rotatex = { id: 'Rotation X', value: 10, lo: 0, hi: 99 };
+var rotatey = { id: 'Rotation Y', value: 10, lo: 0, hi: 99 };
+var rotatez = { id: 'Rotation Z', value: 10, lo: 0, hi: 99 };
+
+var rotation = 0;
 
 function init(){
 
@@ -66,7 +73,11 @@ function resize(){
 function main(){
   window.requestAnimationFrame(main);
   renderer.render(scene, camera);
-  mesh.rotateY(rotation);
+
+  mesh.rotateX(rotatex.value * 0.00005);
+  mesh.rotateY(rotatey.value * 0.00005);
+  mesh.rotateZ(rotatez.value * 0.00005);
+
   ui.update();
 }
 
@@ -79,27 +90,27 @@ function Ui(){
   this.update;
 
   this.touch = new THREE.Vector2();
-  let TOUCH = false;
+  var TOUCH = false;
 
-  let timer, framerate;
-  let time, now, last, fps;
-  let rangeRotate, valRotate;
+  var timer, framerate;
+  var time, now, last, fps;
+  var range = [];
 
-  let u = 20;
-  let row = [];
-  let col  = [];
+  var u = 20;
+  var row  = [];
+  var col  = [];
 
-  let rows, cols;
-  let w, h;
+  var rows, cols;
+  var w, h;
 
-  let requestUpdates = [];
+  this.requestUpdates = [];
 
   this.connect = function(){
 
     w = 360;
     h = window.innerHeight;
 
-    let fill = '#111111';
+    var fill = '#111111';
 
     this.canvas = document.createElement('canvas');
     this.canvas.id = 'ui';
@@ -117,30 +128,15 @@ function Ui(){
     cols = Math.floor(window.innerWidth/u);
     rows = Math.floor(window.innerHeight/u);
 
-    for ( let i = 0; i < cols; i++ ){
+    for ( var i = 0; i < cols; i++ ){
       col[i] = i * u;
     }
 
-    for ( let i = 0; i < rows; i++ ){
+    for ( var i = 0; i < rows; i++ ){
       row[i] = i * u;
     }
 
-    const labelTitle = new this.Label('Three User Interface Experiment', col[1], row[2], w/2-u, u).connect('left');
-
-    const labelDate = new this.Label('♥', col[1], row[3], w/2-u, u).connect('left');
-
-    const labelTime = new this.Label('Time', w-col[1], row[2], w/2-u, u).connect('right');
-    timer = new this.Label('', w-col[1], row[3], -w/2-u, u);
-
-    const labelFps = new this.Label('Framerate', w-col[1], row[5], w/2-u, u).connect('right');
-    framerate      = new this.Label('', w-col[1], row[6], -w/2-u, u);
-
-    const labelRotate = new this.Label('Rotation', col[1], row[8], w/2-u, u).connect('left');
-    valRotate = new this.Label('-', w-col[1], row[8], -w/2+u, u);
-    rangeRotate = new this.Range('rotate', 10, 0, 320, col[1], row[10], w-u*2, 1).connect();
-
-    time = window.performance.now();
-    last = window.performance.now();
+    this.make();
 
     this.update = this.main;
 
@@ -153,6 +149,22 @@ function Ui(){
     window.addEventListener( 'mouseup'  , this.touchend );
 
     console.log('Ui Connected');
+  }
+
+  this.make = function(){
+    const title = new this.Label('Three User Interface Experiment - ', col[1], row[2], w/2-u, u, 'left');
+
+    range[0] = new this.Range( rotatex, col[1], row[6], w-u*2, 1 );
+    this.requestUpdates.push( range[0] );
+
+    range[1] = new this.Range( rotatey, col[1], row[9], w-u*2, 1 );
+    this.requestUpdates.push( range[1] );
+
+    range[2] = new this.Range( rotatez, col[1], row[12], w-u*2, 1 );
+    this.requestUpdates.push( range[2] );
+
+    time = window.performance.now();
+    last = window.performance.now();
   }
 
   this.disconnect = function(){
@@ -176,35 +188,24 @@ function Ui(){
 
   this.main = function(){
 
-      now = window.performance.now();
-      timer.update( Math.floor(now/1000) );
-
-      fps  = now-last;
-      framerate.update(Math.floor(1000/fps));
-      last = window.performance.now();
-
       if( TOUCH ){
-        for ( let i in requestUpdates ){
-          requestUpdates[i].update();
+        for ( var i in this.requestUpdates ){
+          this.requestUpdates[i].update();
         }
-
       }
 
   }
 
   // Label Object
-  this.Label = function( text, x, y, w, h){
+  this.Label = function( text, x, y, w, h, align ){
 
-    this.connect = function(align){
       scope.ctx.textAlign = align;
       scope.ctx.beginPath();
       scope.ctx.fillText( text, x, y );
       scope.ctx.closePath();
-      console.log('Label Connected', text);
-    }
 
     this.update = function(value){
-      scope.ctx.textAlign = 'right';
+      scope.ctx.textAlign = align;
       scope.ctx.beginPath();
       scope.ctx.clearRect(x,y,w,h);
       scope.ctx.fillText( value, x, y );
@@ -214,28 +215,24 @@ function Ui(){
   }
 
   // Range Object
-  this.Range = function( id, value, lo, hi, x, y, w, h ){
+  this.Range = function(target, x, y, w, h ){
 
-    this.value = value+u;
-    console.log('Remember to remove this line...'); rotation = (310/2-this.value) * 0.0001;
+    console.log(target.value);
 
-    this.connect = function(){
+    const label  = new scope.Label(target.id, x, y-u*2, w, u, 'left');
+    var output   = new scope.Label(target.value, w+u, y-u*2, -w/2, u, 'right' );
 
       y = y+h/2;
 
-      this.position = new THREE.Vector2(x+value-u/4, y-u/4);
+      this.position = new THREE.Vector2(x+target.value-u/4, y-u/4);
 
       scope.ctx.beginPath();
       scope.ctx.fillRect(x, y, w, h);
-      scope.ctx.closePath();
-
-      scope.ctx.beginPath();
       scope.ctx.fillRect(this.position.x, this.position.y, u/2+1, u/2+1);
       scope.ctx.closePath();
 
-      requestUpdates.push(this);
-      console.log('Range Connected', id);
-    }
+      console.log(target, 'Connected');
+
 
     this.update = function(){
 
@@ -251,14 +248,15 @@ function Ui(){
         scope.ctx.fillRect(x, y, w, h);
         scope.ctx.fillRect(this.position.x, this.position.y, u/2+1, u/2+1);
         scope.ctx.closePath();
-        this.value = (this.position.x-u);
 
-        valRotate.update(this.value.toString());
+        target.value = this.position.x;
+        output.update(target.value);
 
-        console.log('Remember to remove this line...'); rotation = (310/2-this.value) * 0.0001;
       }
     }
-  }
+
+
+}
 
   this.touchstart = function(event){
     TOUCH = true;
