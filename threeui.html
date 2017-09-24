@@ -247,7 +247,7 @@ function Ui(){
 
         this.position.x = scope.touch.x-u/4;
         scope.ctx.beginPath();
-        scope.ctx.clearRect(x-1, y-u/4,w+u+1,u);
+        scope.ctx.clearRect(x-1, y-u/4-1,w+u+1,u+2);
         scope.ctx.fillRect(x, y, w, h);
         scope.ctx.fillRect(this.position.x, this.position.y, u/2+1, u/2+1);
         scope.ctx.closePath();
