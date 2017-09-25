@@ -1,7 +1,7 @@
 <html>
 <head>
   <title>∇</title>
-  <meta name="viewport" content="width=360, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="viewport" content="width=360, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
   <!-- <link href="https://fonts.googleapis.com/icon?family=Material+Icons"rel="stylesheet"> -->
   <link href="https://fonts.googleapis.com/css?family=Lekton" rel="stylesheet">
   <style>
@@ -9,7 +9,6 @@
       background: #000;
       margin: 0;
       color: #fff;
-      font-size: 48px;
       overflow: hidden;
     }
   </style>
@@ -176,11 +175,13 @@ function Ui(){
   }
 
   this.main = function(){
-      if( TOUCH ){
-        for ( var i in this.requestUpdates ){
-          this.requestUpdates[i].update();
-        }
+
+    if( TOUCH && this.requestUpdates.length > 0 ){
+      for ( var i in this.requestUpdates ){
+        this.requestUpdates[i].update();
       }
+    }
+
   }
 
   // Label Object
@@ -220,6 +221,7 @@ function Ui(){
       scope.ctx.fillText( value, x, y );
       scope.ctx.closePath();
       text = value;
+
     }
   }
 
