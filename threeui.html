@@ -125,7 +125,7 @@ function Ui(){
 
   this.connect = function(){
 
-    width = window.innerWidth;
+    width = 360;
     height = window.innerHeight;
 
     var fill = '#111111';
@@ -252,7 +252,7 @@ function Ui(){
   : ( target.height < 0 ) ? h = height - ( u * target.height )
   : h = height/2;
 
-    var label  = new scope.Label( { id: target.id, x: target.x, y: target.y, width: 0, height: target.h, align: 'left' } );
+    var label  = new scope.Label( { id: target.id, x: target.x, y: target.y, width: 0, height: 1, align: 'left' } );
     var output = new scope.Label( { id: target.value, x: -1, y: target.y, width: -4, height: 1, align: 'right' } );
 
     y = y+u*2;
