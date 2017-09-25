@@ -24,12 +24,15 @@
 window.onload = init;
 window.onresize = resize;
 
-const ui = new Ui();
+var ui = new Ui();
 var renderer, scene, camera, mesh;
 
-var rotatex = { id: 'Rotation X', value: 10, lo: 0, hi: 99 };
-var rotatey = { id: 'Rotation Y', value: 10, lo: 0, hi: 99 };
-var rotatez = { id: 'Rotation Z', value: 10, lo: 0, hi: 99 };
+var range = [];
+
+var title   = { id: 'Three.js Canvas Ui Experiement', x: 1, y: 2, width: -1, height: 2, align: 'left' };
+var rotatex = { id: 'Rotation X', value: 10, lo: 0, hi: 99, x: 1, y: 4, width: -1, height: 2 };
+var rotatey = { id: 'Rotation Y', value: 10, lo: 0, hi: 99, x: 1, y: 8, width: -1, height: 2 };
+var rotatez = { id: 'Rotation Z', value: 10, lo: 0, hi: 99, x: 1, y: 12, width: -1, height: 2 };
 
 var rotation = 0;
 
@@ -47,15 +50,16 @@ function init(){
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(75,window.innerWidth/window.innerHeight);
 
-  const light    = new THREE.HemisphereLight(0xffece0, 0xe6546e);
-  const geometry = new THREE.IcosahedronGeometry(2,2);
-  const material = new THREE.MeshPhongMaterial({ color: 0xffffff, shading: THREE.FlatShading, side: THREE.BackSide });
+  var light    = new THREE.HemisphereLight(0xffece0, 0xe6546e);
+  var geometry = new THREE.IcosahedronGeometry(2,2);
+  var material = new THREE.MeshPhongMaterial({ color: 0xffffff, shading: THREE.FlatShading, side: THREE.BackSide });
 
   mesh = new THREE.Mesh(geometry, material);
   scene.add(mesh);
   scene.add(light);
 
   ui.connect();
+  make();
   console.log('Initialized');
 
   main();
@@ -68,9 +72,11 @@ function resize(){
 
   ui.disconnect();
   ui.connect();
+  make();
 }
 
 function main(){
+
   window.requestAnimationFrame(main);
   renderer.render(scene, camera);
 
@@ -78,12 +84,27 @@ function main(){
   mesh.rotateY(rotatey.value * 0.00005);
   mesh.rotateZ(rotatez.value * 0.00005);
 
+  mesh.rotateX(0.001);
+  mesh.rotateY(0.001);
+  mesh.rotateZ(0.001);
+
   ui.update();
+
+}
+
+make = function(){
+
+  var topbar = new ui.Label( title );
+
+  range[0] = new ui.Range( rotatex );
+  range[1] = new ui.Range( rotatey );
+  range[2] = new ui.Range( rotatez );
+
 }
 
 function Ui(){
 
-  const scope = this;
+  var scope = this;
   this.canvas;
   this.ctx;
   this.font;
@@ -96,26 +117,23 @@ function Ui(){
   var time, now, last, fps;
   var range = [];
 
-  var u = 20;
-  var row  = [];
-  var col  = [];
+  u = 20;
 
-  var rows, cols;
-  var w, h;
+  var width, height;
 
   this.requestUpdates = [];
 
   this.connect = function(){
 
-    w = 360;
-    h = window.innerHeight;
+    width = window.innerWidth;
+    height = window.innerHeight;
 
     var fill = '#111111';
 
     this.canvas = document.createElement('canvas');
     this.canvas.id = 'ui';
-    this.canvas.width = w;
-    this.canvas.height = window.innerHeight;
+    this.canvas.width = width;
+    this.canvas.height = height;
     this.canvas.style.position = 'fixed';
     this.canvas.style.zIndex = '100';
     document.body.appendChild(this.canvas);
@@ -124,19 +142,6 @@ function Ui(){
     this.ctx.font = '13px Lekton';
     this.ctx.fillStyle = fill;
     this.ctx.textBaseline = 'top';
-
-    cols = Math.floor(window.innerWidth/u);
-    rows = Math.floor(window.innerHeight/u);
-
-    for ( var i = 0; i < cols; i++ ){
-      col[i] = i * u;
-    }
-
-    for ( var i = 0; i < rows; i++ ){
-      row[i] = i * u;
-    }
-
-    this.make();
 
     this.update = this.main;
 
@@ -149,22 +154,6 @@ function Ui(){
     window.addEventListener( 'mouseup'  , this.touchend );
 
     console.log('Ui Connected');
-  }
-
-  this.make = function(){
-    const title = new this.Label('Three User Interface Experiment - ', col[1], row[2], w/2-u, u, 'left');
-
-    range[0] = new this.Range( rotatex, col[1], row[6], w-u*2, 1 );
-    this.requestUpdates.push( range[0] );
-
-    range[1] = new this.Range( rotatey, col[1], row[9], w-u*2, 1 );
-    this.requestUpdates.push( range[1] );
-
-    range[2] = new this.Range( rotatez, col[1], row[12], w-u*2, 1 );
-    this.requestUpdates.push( range[2] );
-
-    time = window.performance.now();
-    last = window.performance.now();
   }
 
   this.disconnect = function(){
@@ -187,27 +176,47 @@ function Ui(){
   }
 
   this.main = function(){
-
       if( TOUCH ){
         for ( var i in this.requestUpdates ){
           this.requestUpdates[i].update();
         }
       }
-
   }
 
   // Label Object
-  this.Label = function( text, x, y, w, h, align ){
+  this.Label = function(target){
 
-      scope.ctx.textAlign = align;
+    var x;
+    var y;
+    var w;
+    var h;
+
+    ( target.x > 0 ) ? x = u * target.x
+  : ( target.x < 0 ) ? x = width + ( u * target.x )
+  : x = width/2;
+
+    ( target.y > 0 ) ? y = u * target.y
+  : ( target.y < 0 ) ? y = height - ( u * target.y )
+  : y = height/2;
+
+    ( target.width > 0 ) ? w = u * target.width
+  : ( target.width < 0 ) ? w = width + ( u * target.width ) - x
+  : w = width/2;
+
+    ( target.height > 0 ) ? h = u * target.height
+  : ( target.height < 0 ) ? h = height - ( u * target.height )
+  : h = height/2;
+
+      scope.ctx.textAlign = target.align;
       scope.ctx.beginPath();
-      scope.ctx.fillText( text, x, y );
+      scope.ctx.fillText( target.id, x, y );
       scope.ctx.closePath();
 
     this.update = function(value){
-      scope.ctx.textAlign = align;
+
+      scope.ctx.textAlign = target.align;
       scope.ctx.beginPath();
-      scope.ctx.clearRect(x,y,w,h);
+      scope.ctx.clearRect( x, y, w, h );
       scope.ctx.fillText( value, x, y );
       scope.ctx.closePath();
       text = value;
@@ -215,37 +224,63 @@ function Ui(){
   }
 
   // Range Object
-  this.Range = function(target, x, y, w, h ){
+  this.Range = function(target){
 
-    console.log(target.value);
+    var x;
+    var y;
+    var w;
+    var h;
 
-    const label  = new scope.Label(target.id, x, y-u*2, w, u, 'left');
-    var output   = new scope.Label(target.value, w+u, y-u*2, -w/2, u, 'right' );
+    var lo = target.lo;
+    var hi = target.hi;
 
-      y = y+h/2;
+    var s = 1;
 
-      this.position = new THREE.Vector2(x+target.value-u/4, y-u/4);
+    ( target.x > 0 ) ? x = u * target.x
+  : ( target.x < 0 ) ? x = width + ( u * target.x )
+  : x = width/2;
 
-      scope.ctx.beginPath();
-      scope.ctx.fillRect(x, y, w, h);
-      scope.ctx.fillRect(this.position.x, this.position.y, u/2+1, u/2+1);
-      scope.ctx.closePath();
+    ( target.y > 0 ) ? y = u * target.y
+  : ( target.y < 0 ) ? y = height - ( u * target.y )
+  : y = height/2;
 
-      console.log(target, 'Connected');
+    ( target.width > 0 ) ? w = u * target.width
+  : ( target.width < 0 ) ? w = width + ( u * target.width ) - x
+  : w = width/2;
+
+    ( target.height > 0 ) ? h = u * target.height
+  : ( target.height < 0 ) ? h = height - ( u * target.height )
+  : h = height/2;
+
+    var label  = new scope.Label( { id: target.id, x: target.x, y: target.y, width: 0, height: target.h, align: 'left' } );
+    var output = new scope.Label( { id: target.value, x: -1, y: target.y, width: -4, height: 1, align: 'right' } );
+
+    y = y+u*2;
+
+    this.position = new THREE.Vector2(x+target.value-u/4, y-u/4);
+
+    scope.ctx.beginPath();
+    scope.ctx.fillRect(x, y, w, s);
+    scope.ctx.fillRect(this.position.x, this.position.y, u/2+1, u/2+1);
+    scope.ctx.closePath();
+
+    ui.requestUpdates.push( this );
+
+    console.log(target, 'Connected');
 
 
     this.update = function(){
 
-      const c0 = ( scope.touch.x >= x+u/4 && scope.touch.x <= w+u-u/4 );
-      const c1 = ( scope.touch.distanceTo(this.position) < u*2 );
-      const c2 = ( Math.abs(scope.touch.y-this.position.y) < u * 2 );
+      var c0 = ( scope.touch.x >= x+u/4 && scope.touch.x <= w+u-u/4 );
+      var c1 = ( scope.touch.distanceTo(this.position) < u*2 );
+      var c2 = ( Math.abs(scope.touch.y-this.position.y) < u * 2 );
 
       if( c0 && ( c1 || c2 ) ){
 
         this.position.x = scope.touch.x-u/4;
         scope.ctx.beginPath();
         scope.ctx.clearRect(x-1, y-u/4-1,w+u+1,u+2);
-        scope.ctx.fillRect(x, y, w, h);
+        scope.ctx.fillRect(x, y, w, s);
         scope.ctx.fillRect(this.position.x, this.position.y, u/2+1, u/2+1);
         scope.ctx.closePath();
 
@@ -254,9 +289,7 @@ function Ui(){
 
       }
     }
-
-
-}
+  }
 
   this.touchstart = function(event){
     TOUCH = true;
@@ -288,6 +321,26 @@ function Ui(){
   this.requestLog = function(event){
     console.log(event.type);
     console.log(event);
+  }
+
+  this.Vec = function(x, y){
+
+    this.x = x;
+    this.y = y;
+
+    this.set(x, y) = function() {
+      this.x = x;
+      this.y = y;
+    }
+
+    this.dist(x, y) = function() {
+
+      var a = (x-this.x)^2;
+      var b = (y-this.y)^2;
+
+      return(Math.sqrt( a + b ));
+
+    }
   }
 
 }
