@@ -29,9 +29,9 @@ var renderer, scene, camera, mesh;
 var range = [];
 
 var title   = { id: 'Three.js Canvas Ui Experiement', x: 1, y: 2, width: -1, height: 2, align: 'left' };
-var rotatex = { id: 'Rotation X', value: 10, lo: 0, hi: 99, x: 1, y: 4, width: -1, height: 2 };
-var rotatey = { id: 'Rotation Y', value: 10, lo: 0, hi: 99, x: 1, y: 8, width: -1, height: 2 };
-var rotatez = { id: 'Rotation Z', value: 10, lo: 0, hi: 99, x: 1, y: 12, width: -1, height: 2 };
+var rotatex = { id: 'Rotation X', value: 0, lo: -50, hi: 50, x: 1, y: 4, width: -1, height: 2 };
+var rotatey = { id: 'Rotation Y', value: -50, lo: -50, hi: 50, x: 1, y: 8, width: -1, height: 2 };
+var rotatez = { id: 'Rotation Z', value: 0, lo: -50, hi: 50, x: 1, y: 12, width: -1, height: 2 };
 
 var rotation = 0;
 
@@ -259,7 +259,14 @@ function Ui(){
 
     y = y+u*2;
 
-    this.position = new THREE.Vector2(x+target.value-u/4, y-u/4);
+    var a = hi - lo;
+    var b = w-u/2;
+    var c = (target.value - lo);
+
+    var n = b * ( c/a );
+
+    console.log(n);
+    this.position = new THREE.Vector2(x+n, y-u/4);
 
     scope.ctx.beginPath();
     scope.ctx.fillRect(x, y, w, s);
@@ -286,8 +293,16 @@ function Ui(){
         scope.ctx.fillRect(this.position.x, this.position.y, u/2+1, u/2+1);
         scope.ctx.closePath();
 
-        target.value = this.position.x;
-        output.update(Math.round(target.value));
+        a = hi - lo;
+        b = w-u/2;
+        c = this.position.x-x;
+
+        var n = a * ( c/b ) + lo;
+
+        console.log(n);
+        target.value = Math.round(n) ;
+
+        output.update( target.value );
 
       }
     }
@@ -296,7 +311,7 @@ function Ui(){
   this.touchstart = function(event){
     TOUCH = true;
       switch(event.type){
-        case( 'mousedown'):
+        case( 'mousedown' ):
           scope.touch.set( event.clientX, event.clientY );
         break;
         case( 'touchstart'):
@@ -307,10 +322,10 @@ function Ui(){
 
   this.touchmove = function(event){
     switch(event.type){
-      case( 'mousemove'):
+      case( 'mousemove' ):
         scope.touch.set( event.clientX, event.clientY );
       break;
-      case( 'touchmove'):
+      case( 'touchmove' ):
         scope.touch.set( event.touches[0].clientX, event.touches[0].clientY );
       break;
     }
