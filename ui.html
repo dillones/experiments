@@ -26,6 +26,7 @@ window.onload = init;
 window.onresize = resize;
 
 var ui = new Ui();
+var overlay = new Ui();
 var renderer, scene, camera, mesh;
 
 var range = [];
@@ -43,7 +44,7 @@ var rotation = 0;
 
 function init(){
 
-  button = { id: 'Toggle Interface', x: 1, y: 17, width: -1, height: 1, func: toggle() }
+  button = { id: 'Toggle Interface', x: 1, y: 17, width: -1, height: 1, function: toggle }
 
   renderer = new THREE.WebGLRenderer();
   renderer.setSize( window.innerWidth, window.innerHeight );
@@ -66,6 +67,7 @@ function init(){
   scene.add(light);
 
   ui.connect();
+  overlay.connect();
   make();
   console.log('Initialized');
 
@@ -99,6 +101,7 @@ function main(){
   mesh.rotateZ(0.001);
 
   ui.update();
+  overlay.update();
 
 }
 
@@ -110,13 +113,20 @@ make = function(){
   range[0] = new ui.Range( rotatex );
   range[1] = new ui.Range( rotatey );
   range[2] = new ui.Range( rotatez );
-  range[3] = new ui.Button( button );
+  range[3] = new overlay.Button( button );
 
 }
 
 function toggle(){
+  UI = !UI;
 
-  console.log('Button Communication Working');
+  if ( UI ) {
+  ui.connect();
+  make();
+  }
+  else {
+  ui.disconnect();
+  }
 
 }
 
@@ -130,6 +140,7 @@ function Ui(){
 
   this.touch = new THREE.Vector2();
   var TOUCH = false;
+  var RELEASE = false;
 
   var timer, framerate;
   var time, now, last, fps;
@@ -151,7 +162,7 @@ this.connect = function(){
   fill = '#111111';
 
   this.canvas = document.createElement('canvas');
-  this.canvas.id = 'ui';
+  this.canvas.class = 'ui';
   this.canvas.width = width;
   this.canvas.height = height;
   this.canvas.style.position = 'fixed';
@@ -159,7 +170,7 @@ this.connect = function(){
   document.body.appendChild(this.canvas);
 
   this.ctx = this.canvas.getContext('2d');
-  this.ctx.font = '13px Lekton';
+  this.ctx.font = '12px Lekton';
   this.ctx.fillStyle = fill;
   this.ctx.textBaseline = 'top';
 
@@ -197,10 +208,11 @@ this.disconnect = function(){
 
 this.main = function(){
 
-  if( TOUCH && this.requestUpdates.length > 0 ){
+  if( ( TOUCH || RELEASE ) && this.requestUpdates.length > 0 ){
     for ( var i in this.requestUpdates ){
       this.requestUpdates[i].update();
     }
+    RELEASE = false;
   }
 
 }
@@ -288,7 +300,6 @@ this.Range = function(target){
 
   var n = b * ( c/a );
 
-  console.log(n);
   this.position = new THREE.Vector2(x+n, y-u/4);
   scope.ctx.fillStyle = fill;
 
@@ -297,8 +308,7 @@ this.Range = function(target){
   scope.ctx.fillRect(this.position.x, this.position.y, u/2+1, u/2+1);
   scope.ctx.closePath();
 
-  ui.requestUpdates.push( this );
-  console.log(target, 'Connected');
+  scope.requestUpdates.push( this );
 
   this.update = function(){
 
@@ -367,17 +377,20 @@ this.Button = function( target ){
 
   scope.ctx.beginPath();
   scope.ctx.fillStyle = '#fff';
-  scope.ctx.fillRect( x-4, y-4, w+4, h+1 );
+  scope.ctx.fillRect( x-4, y-5, w+4, h+1 );
   scope.ctx.closePath();
 
   var label = new scope.Label({ id: target.id, x: target.x, y: target.y, width: 0, height: 1, align: 'left' });
-  ui.requestUpdates.push( this );
-  console.log(target, 'Connected');
+
+  this.f = target.function;
+  scope.requestUpdates.push( this );
 
   this.update = function(){
 
-    if ( scope.touch.x > x && scope.touch.x < x + w && scope.touch.y > y && scope.touch.y < y + h ){
-      console.log('Button Working');
+    if ( scope.touch.x > x && scope.touch.x < x + w && scope.touch.y > y && scope.touch.y < y + h && RELEASE ){
+      console.log('Button Release');
+      this.f();
+      RELEASE = false;
     }
 
   }
@@ -409,6 +422,7 @@ this.touchstart = function(event){
 
   this.touchend = function(event){
     TOUCH = false;
+    RELEASE = true;
   }
 
   this.requestLog = function(event){
