@@ -18,6 +18,8 @@
 
 <script src="https://ajax.googleapis.com/ajax/libs/threejs/r84/three.min.js"></script>
 <!-- <script src="js/three.min.r84.js"></script> -->
+<!-- <script src="js/ui.js"></script> -->
+
 <script>
 
 window.onload = init;
@@ -28,10 +30,11 @@ var renderer, scene, camera, mesh;
 
 var range = [];
 
-var title   = { id: 'Three.js Canvas Ui Experiement', x: 1, y: 2, width: -1, height: 2, align: 'left' };
-var rotatex = { id: 'Rotation X', value: 0, lo: -50, hi: 50, x: 1, y: 4, width: -1, height: 2 };
-var rotatey = { id: 'Rotation Y', value: -50, lo: -50, hi: 50, x: 1, y: 8, width: -1, height: 2 };
-var rotatez = { id: 'Rotation Z', value: 0, lo: -50, hi: 50, x: 1, y: 12, width: -1, height: 2 };
+var title   = { id: 'Three.js Canvas Ui Experiement', x: 1, y: 1, width: -1, height: 2, align: 'left' };
+var parameters  = { id: 'Parameters', x: 1, y: 3, width: -1, height: 3, align: 'left' };
+var rotatex = { id: 'Rotation X', value: 0, lo: -50, hi: 50, x: 1, y: 5, width: -1, height: 2 };
+var rotatey = { id: 'Rotation Y', value: -50, lo: -50, hi: 50, x: 1, y: 9, width: -1, height: 2 };
+var rotatez = { id: 'Rotation Z', value: 0, lo: -50, hi: 50, x: 1, y: 13, width: -1, height: 2 };
 
 var rotation = 0;
 
@@ -62,9 +65,11 @@ function init(){
   console.log('Initialized');
 
   main();
+
 }
 
 function resize(){
+
   renderer.setSize(window.innerWidth, window.innerHeight);
   camera.aspect = window.innerWidth/window.innerHeight;
   camera.updateProjectionMatrix();
@@ -72,6 +77,7 @@ function resize(){
   ui.disconnect();
   ui.connect();
   make();
+
 }
 
 function main(){
@@ -94,6 +100,7 @@ function main(){
 make = function(){
 
   var topbar = new ui.Label( title );
+  var a = new ui.Label( parameters );
 
   range[0] = new ui.Range( rotatex );
   range[1] = new ui.Range( rotatey );
@@ -115,210 +122,216 @@ function Ui(){
   var timer, framerate;
   var time, now, last, fps;
   var range = [];
+  var offset = 0;
 
   u = 20;
 
   var width, height;
 
+this.requestUpdates = [];
+
+this.connect = function(){
+
+  width = 360;
+  height = window.innerHeight;
+
+  var fill = '#111111';
+
+  this.canvas = document.createElement('canvas');
+  this.canvas.id = 'ui';
+  this.canvas.width = width;
+  this.canvas.height = height;
+  this.canvas.style.position = 'fixed';
+  this.canvas.style.zIndex = '100';
+  document.body.appendChild(this.canvas);
+
+  this.ctx = this.canvas.getContext('2d');
+  this.ctx.font = '13px Lekton';
+  this.ctx.fillStyle = fill;
+  this.ctx.textBaseline = 'top';
+
+  this.update = this.main;
+
+  window.addEventListener( 'touchstart', this.touchstart);
+  window.addEventListener( 'touchmove' , this.touchmove);
+  window.addEventListener( 'touchend'  , this.touchend );
+
+  window.addEventListener( 'mousedown', this.touchstart );
+  window.addEventListener( 'mousemove', this.touchmove );
+  window.addEventListener( 'mouseup'  , this.touchend );
+
+  console.log('Ui Connected');
+}
+
+this.disconnect = function(){
+
+  document.body.removeChild(this.canvas);
+  this.canvas = null;
+  this.ctx = null;
+  this.font = null;
+  this.update = function(){};
   this.requestUpdates = [];
 
-  this.connect = function(){
+  window.removeEventListener( 'touchstart', this.touchstart);
+  window.removeEventListener( 'touchmove' , this.touchmove);
+  window.removeEventListener( 'touchend'  , this.touchend );
 
-    width = 360;
-    height = window.innerHeight;
+  window.removeEventListener( 'mousedown', this.touchstart );
+  window.removeEventListener( 'mousemove', this.touchmove );
+  window.removeEventListener( 'mouseup'  , this.touchend );
 
-    var fill = '#111111';
+}
 
-    this.canvas = document.createElement('canvas');
-    this.canvas.id = 'ui';
-    this.canvas.width = width;
-    this.canvas.height = height;
-    this.canvas.style.position = 'fixed';
-    this.canvas.style.zIndex = '100';
-    document.body.appendChild(this.canvas);
+this.main = function(){
 
-    this.ctx = this.canvas.getContext('2d');
-    this.ctx.font = '13px Lekton';
-    this.ctx.fillStyle = fill;
-    this.ctx.textBaseline = 'top';
-
-    this.update = this.main;
-
-    window.addEventListener( 'touchstart', this.touchstart);
-    window.addEventListener( 'touchmove' , this.touchmove);
-    window.addEventListener( 'touchend'  , this.touchend );
-
-    window.addEventListener( 'mousedown', this.touchstart );
-    window.addEventListener( 'mousemove', this.touchmove );
-    window.addEventListener( 'mouseup'  , this.touchend );
-
-    console.log('Ui Connected');
-  }
-
-  this.disconnect = function(){
-
-    document.body.removeChild(this.canvas);
-    this.canvas = null;
-    this.ctx = null;
-    this.font = null;
-    this.update = function(){};
-    this.requestUpdates = [];
-
-    window.removeEventListener( 'touchstart', this.touchstart);
-    window.removeEventListener( 'touchmove' , this.touchmove);
-    window.removeEventListener( 'touchend'  , this.touchend );
-
-    window.removeEventListener( 'mousedown', this.touchstart );
-    window.removeEventListener( 'mousemove', this.touchmove );
-    window.removeEventListener( 'mouseup'  , this.touchend );
-
-  }
-
-  this.main = function(){
-
-    if( TOUCH && this.requestUpdates.length > 0 ){
-      for ( var i in this.requestUpdates ){
-        this.requestUpdates[i].update();
-      }
-    }
-
-  }
-
-  // Label Object
-  this.Label = function(target){
-
-    var x;
-    var y;
-    var w;
-    var h;
-
-    ( target.x > 0 ) ? x = u * target.x
-  : ( target.x < 0 ) ? x = width + ( u * target.x )
-  : x = width/2;
-
-    ( target.y > 0 ) ? y = u * target.y
-  : ( target.y < 0 ) ? y = height - ( u * target.y )
-  : y = height/2;
-
-    ( target.width > 0 ) ? w = u * target.width
-  : ( target.width < 0 ) ? w = width + ( u * target.width ) - x
-  : w = width/2;
-
-    ( target.height > 0 ) ? h = u * target.height
-  : ( target.height < 0 ) ? h = height - ( u * target.height )
-  : h = height/2;
-
-      scope.ctx.textAlign = target.align;
-      scope.ctx.beginPath();
-      scope.ctx.fillText( target.id, x, y );
-      scope.ctx.closePath();
-
-    this.update = function(value){
-
-      scope.ctx.textAlign = target.align;
-      scope.ctx.beginPath();
-      scope.ctx.clearRect( x, y, w, h );
-      scope.ctx.fillText( value, x, y );
-      scope.ctx.closePath();
-      text = value;
-
+  if( TOUCH && this.requestUpdates.length > 0 ){
+    for ( var i in this.requestUpdates ){
+      this.requestUpdates[i].update();
     }
   }
 
-  // Range Object
-  this.Range = function(target){
+}
 
-    var x;
-    var y;
-    var w;
-    var h;
+// Label Object
+this.Label = function(target){
 
-    var lo = target.lo;
-    var hi = target.hi;
+  var x;
+  var y;
+  var w;
+  var h;
 
-    var s = 1;
+  ( target.x > 0 ) ? x = u * target.x
+: ( target.x < 0 ) ? x = width + ( u * target.x )
+: x = width/2;
 
-    ( target.x > 0 ) ? x = u * target.x
-  : ( target.x < 0 ) ? x = width + ( u * target.x )
-  : x = width/2;
+  ( target.y > 0 ) ? y = u * target.y
+: ( target.y < 0 ) ? y = height - ( u * target.y )
+: y = height/2;
 
-    ( target.y > 0 ) ? y = u * target.y
-  : ( target.y < 0 ) ? y = height - ( u * target.y )
-  : y = height/2;
+  ( target.width > 0 ) ? w = u * target.width
+: ( target.width < 0 ) ? w = width + ( u * target.width ) - x
+: w = width/2;
 
-    ( target.width > 0 ) ? w = u * target.width
-  : ( target.width < 0 ) ? w = width + ( u * target.width ) - x
-  : w = width/2;
+  ( target.height > 0 ) ? h = u * target.height
+: ( target.height < 0 ) ? h = height - ( u * target.height )
+: h = height/2;
 
-    ( target.height > 0 ) ? h = u * target.height
-  : ( target.height < 0 ) ? h = height - ( u * target.height )
-  : h = height/2;
-
-    var label  = new scope.Label( { id: target.id, x: target.x, y: target.y, width: 0, height: 1, align: 'left' } );
-    var output = new scope.Label( { id: target.value, x: -1, y: target.y, width: -4, height: 1, align: 'right' } );
-
-    y = y+u*2;
-
-    var a = hi - lo;
-    var b = w-u/2;
-    var c = (target.value - lo);
-
-    var n = b * ( c/a );
-
-    console.log(n);
-    this.position = new THREE.Vector2(x+n, y-u/4);
-
+    scope.ctx.textAlign = target.align;
     scope.ctx.beginPath();
-    scope.ctx.fillRect(x, y, w, s);
-    scope.ctx.fillRect(this.position.x, this.position.y, u/2+1, u/2+1);
+    scope.ctx.fillText( target.id, x, y );
     scope.ctx.closePath();
 
-    ui.requestUpdates.push( this );
+  this.update = function(value){
 
-    console.log(target, 'Connected');
+    scope.ctx.textAlign = target.align;
+    scope.ctx.beginPath();
+    scope.ctx.clearRect( x, y, w, h );
+    scope.ctx.fillText( value, x, y );
+    scope.ctx.closePath();
+    text = value;
 
-
-    this.update = function(){
-
-      var c0 = ( scope.touch.x >= x+u/4 && scope.touch.x <= w+u-u/4 );
-      var c1 = ( scope.touch.distanceTo(this.position) < u*2 );
-      var c2 = ( Math.abs(scope.touch.y-this.position.y) < u * 2 );
-
-      if( c0 && ( c1 || c2 ) ){
-
-        this.position.x = scope.touch.x-u/4;
-        scope.ctx.beginPath();
-        scope.ctx.clearRect(x-1, y-u/4-1,w+u+1,u+2);
-        scope.ctx.fillRect(x, y, w, s);
-        scope.ctx.fillRect(this.position.x, this.position.y, u/2+1, u/2+1);
-        scope.ctx.closePath();
-
-        a = hi - lo;
-        b = w-u/2;
-        c = this.position.x-x;
-
-        var n = a * ( c/b ) + lo;
-
-        console.log(n);
-        target.value = Math.round(n) ;
-
-        output.update( target.value );
-
-      }
-    }
   }
+}
 
-  this.touchstart = function(event){
-    TOUCH = true;
-      switch(event.type){
-        case( 'mousedown' ):
-          scope.touch.set( event.clientX, event.clientY );
-        break;
-        case( 'touchstart'):
-          scope.touch.set( event.touches[0].clientX, event.touches[0].clientY );
+// Range Object
+this.Range = function(target){
+
+  var x;
+  var y;
+  var w;
+  var h;
+
+  var lo = target.lo;
+  var hi = target.hi;
+
+  var s = 1;
+
+  ( target.x > 0 ) ? x = u * target.x
+: ( target.x < 0 ) ? x = width + ( u * target.x )
+: x = width/2;
+
+  ( target.y > 0 ) ? y = u * target.y
+: ( target.y < 0 ) ? y = height - ( u * target.y )
+: y = height/2;
+
+  ( target.width > 0 ) ? w = u * target.width
+: ( target.width < 0 ) ? w = width + ( u * target.width ) - x
+: w = width/2;
+
+  ( target.height > 0 ) ? h = u * target.height
+: ( target.height < 0 ) ? h = height - ( u * target.height )
+: h = height/2;
+
+  var label  = new scope.Label( { id: target.id, x: target.x, y: target.y, width: 0, height: 1, align: 'left' } );
+  var output = new scope.Label( { id: target.value, x: -1, y: target.y, width: -4, height: 1, align: 'right' } );
+
+  y = y+u*2;
+
+  var a = hi - lo;
+  var b = w-u/2;
+  var c = (target.value - lo);
+
+  var n = b * ( c/a );
+
+  console.log(n);
+  this.position = new THREE.Vector2(x+n, y-u/4);
+
+  scope.ctx.beginPath();
+  scope.ctx.fillRect(x, y, w, s);
+  scope.ctx.fillRect(this.position.x, this.position.y, u/2+1, u/2+1);
+  scope.ctx.closePath();
+
+  ui.requestUpdates.push( this );
+  console.log(target, 'Connected');
+
+  this.update = function(){
+
+    var c0 = ( scope.touch.x >= x+u/4 && scope.touch.x <= w+x-u/4 );
+    var c1 = ( scope.touch.distanceTo(this.position) < u*2 );
+    var c2 = ( Math.abs(scope.touch.y-this.position.y) < u * 2 );
+    var c3 = ( scope.touch.x > x+w-u/4 && scope.touch.x < width );
+    var c4 = ( scope.touch.x < x+u/4 && scope.touch.x > offset );
+
+    this.position.x = scope.touch.x-u/4 + offset;
+
+    var p = ( c0 && ( c1 || c2 ) ) ? this.position.x
+          : ( c2 && c3 ) ? x+w-u/2
+          : ( c2 && c4 ) ? x
+          : false
+
+    if ( typeof p == 'number' ){
+
+    scope.ctx.beginPath()
+    scope.ctx.clearRect(x-1, y-u/4-1,w+u+1,u+2)
+    scope.ctx.fillRect(x, y, w, s)
+    scope.ctx.fillRect( p, this.position.y, u/2+1, u/2+1);
+    scope.ctx.closePath();
+
+    a = hi - lo;
+    b = w-u/2;
+    c = p-x;
+
+    var n = a * ( c/b ) + lo;
+
+    target.value = Math.round(n);
+
+    output.update( target.value );
+
+  }
+  }
+}
+
+this.touchstart = function(event){
+  TOUCH = true;
+    switch(event.type){
+      case( 'mousedown' ):
+        scope.touch.set( event.clientX, event.clientY );
       break;
-    }
+      case( 'touchstart'):
+        scope.touch.set( event.touches[0].clientX, event.touches[0].clientY );
+    break;
   }
+}
 
   this.touchmove = function(event){
     switch(event.type){
@@ -359,7 +372,6 @@ function Ui(){
 
     }
   }
-
 }
 
 </script>
