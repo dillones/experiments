@@ -35,10 +35,15 @@ var parameters  = { id: 'Parameters', x: 1, y: 3, width: -1, height: 3, align: '
 var rotatex = { id: 'Rotation X', value: 0, lo: -50, hi: 50, x: 1, y: 5, width: -1, height: 2 };
 var rotatey = { id: 'Rotation Y', value: -50, lo: -50, hi: 50, x: 1, y: 9, width: -1, height: 2 };
 var rotatez = { id: 'Rotation Z', value: 0, lo: -50, hi: 50, x: 1, y: 13, width: -1, height: 2 };
+var button;
+
+var UI = true;
 
 var rotation = 0;
 
 function init(){
+
+  button = { id: 'Toggle Interface', x: 1, y: 17, width: -1, height: 1, func: toggle() }
 
   renderer = new THREE.WebGLRenderer();
   renderer.setSize( window.innerWidth, window.innerHeight );
@@ -105,6 +110,13 @@ make = function(){
   range[0] = new ui.Range( rotatex );
   range[1] = new ui.Range( rotatey );
   range[2] = new ui.Range( rotatez );
+  range[3] = new ui.Button( button );
+
+}
+
+function toggle(){
+
+  console.log('Button Communication Working');
 
 }
 
@@ -123,6 +135,7 @@ function Ui(){
   var time, now, last, fps;
   var range = [];
   var offset = 0;
+  var fill;
 
   u = 20;
 
@@ -135,7 +148,7 @@ this.connect = function(){
   width = 360;
   height = window.innerHeight;
 
-  var fill = '#111111';
+  fill = '#111111';
 
   this.canvas = document.createElement('canvas');
   this.canvas.id = 'ui';
@@ -217,6 +230,7 @@ this.Label = function(target){
 : h = height/2;
 
     scope.ctx.textAlign = target.align;
+    scope.ctx.fillStyle = fill;
     scope.ctx.beginPath();
     scope.ctx.fillText( target.id, x, y );
     scope.ctx.closePath();
@@ -224,6 +238,7 @@ this.Label = function(target){
   this.update = function(value){
 
     scope.ctx.textAlign = target.align;
+    scope.ctx.fillStyle = fill;
     scope.ctx.beginPath();
     scope.ctx.clearRect( x, y, w, h );
     scope.ctx.fillText( value, x, y );
@@ -275,6 +290,7 @@ this.Range = function(target){
 
   console.log(n);
   this.position = new THREE.Vector2(x+n, y-u/4);
+  scope.ctx.fillStyle = fill;
 
   scope.ctx.beginPath();
   scope.ctx.fillRect(x, y, w, s);
@@ -301,6 +317,7 @@ this.Range = function(target){
 
     if ( typeof p == 'number' ){
 
+    scope.ctx.fillStyle = fill;
     scope.ctx.beginPath()
     scope.ctx.clearRect(x-1, y-u/4-1,w+u+1,u+2)
     scope.ctx.fillRect(x, y, w, s)
@@ -319,6 +336,52 @@ this.Range = function(target){
 
   }
   }
+}
+
+this.Button = function( target ){
+
+  scope.target = target;
+
+  var x;
+  var y;
+  var w;
+  var h;
+
+  var active = false;
+
+    ( target.x > 0 ) ? x = u * target.x
+  : ( target.x < 0 ) ? x = width + ( u * target.x )
+  : x = width/2;
+
+    ( target.y > 0 ) ? y = u * target.y
+  : ( target.y < 0 ) ? y = height - ( u * target.y )
+  : y = height/2;
+
+    ( target.width > 0 ) ? w = u * target.width
+  : ( target.width < 0 ) ? w = width + ( u * target.width ) - x
+  : w = width/2;
+
+    ( target.height > 0 ) ? h = u * target.height
+  : ( target.height < 0 ) ? h = height - ( u * target.height )
+  : h = height/2;
+
+  scope.ctx.beginPath();
+  scope.ctx.fillStyle = '#fff';
+  scope.ctx.fillRect( x-4, y-4, w+4, h+1 );
+  scope.ctx.closePath();
+
+  var label = new scope.Label({ id: target.id, x: target.x, y: target.y, width: 0, height: 1, align: 'left' });
+  ui.requestUpdates.push( this );
+  console.log(target, 'Connected');
+
+  this.update = function(){
+
+    if ( scope.touch.x > x && scope.touch.x < x + w && scope.touch.y > y && scope.touch.y < y + h ){
+      console.log('Button Working');
+    }
+
+  }
+
 }
 
 this.touchstart = function(event){
