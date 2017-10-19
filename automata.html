@@ -1,0 +1,319 @@
+<html>
+<head>
+  <title>∇</title>
+  <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+  <style>
+    body {
+      background: #000;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+<script>
+
+window.onload = init;
+window.onresize = resize;
+
+var cv = document.createElement('canvas');
+document.body.appendChild(cv);
+var ctx = cv.getContext('2d');
+
+var fps = 2;
+var frame = 1;
+
+var width, height, w, h;
+var s = 16;
+var data  = [];
+var state = [];
+var grid = { x: [], y: [] };
+
+var search = [];
+search[0] = { x:  0, y: -1 }
+search[1] = { x:  1, y:  0 }
+search[2] = { x:  0, y:  1 }
+search[3] = { x: -1, y:  0 }
+
+search[4] = { x: -1, y: -1 }
+search[5] = { x:  1, y: -1 }
+search[6] = { x:  1, y:  1 }
+search[7] = { x: -1, y:  1 }
+
+var generation;
+
+var agent;
+
+function init(){
+
+  agent = new Agent();
+  resize();
+  main();
+
+}
+
+function resize(){
+
+  cv.width = window.innerWidth;
+  cv.height = window.innerHeight;
+  s = 8;
+  w = Math.round(cv.width/s);
+  h = Math.round(cv.height/s);
+
+  cv.style.top = window.innerHeight/2 - cv.height/2;
+  cv.style.left = window.innerWidth/2 - cv.width/2;
+  cv.style.position = 'fixed';
+
+  reset();
+  render();
+
+}
+
+function reset(){
+  var i = 0;
+
+  data = [];
+  state = [];
+  grid = {x: [], y: []}
+
+  for ( var y = 0; y < h; y ++  ){
+  for ( var x = 0; x < w; x ++  ){
+
+    data[i] = { x: x, y: y, state: Math.round( -0.15 + Math.random() ), i: i };
+    grid.x[x] = x*s;
+    grid.y[y] = y*s;
+
+    i++;
+  }
+  }
+  generation = 0;
+  console.log('Reset.');
+  generate();
+  agent.connect();
+}
+
+function render(){
+  ctx.beginPath();
+
+    for ( var i in data ){
+      switch( data[i].state ){
+        case(0):
+        ctx.fillStyle = '#4cf29e';
+        ctx.fillRect( grid.x[data[i].x], grid.y[data[i].y], s, s );
+        break;
+        case(1):
+        ctx.fillStyle = '#36992a';
+        ctx.fillRect( grid.x[data[i].x], grid.y[data[i].y], s, s );
+        break;
+        case(2):
+        ctx.fillStyle = '#e36b30';
+        ctx.fillRect( grid.x[data[i].x], grid.y[data[i].y], s, s );
+        break;
+        case(3):
+        ctx.fillStyle = '#2e7326';
+        ctx.fillRect( grid.x[data[i].x], grid.y[data[i].y], s, s );
+        break;
+        case(5):
+        ctx.fillStyle = '#e36b30';
+        ctx.fillRect( grid.x[data[i].x], grid.y[data[i].y], s, s );
+        break;
+      }
+    }
+
+    // ctx.fillStyle = '#e36b30';
+    // ctx.fillRect( agent.loc.x*s, agent.loc.y*s, s, s );
+
+
+  ctx.closePath();
+}
+
+function main(){
+    requestAnimationFrame(main);
+
+    if( frame == fps ){
+    agent.update();
+    //render();
+    ctx.beginPath();
+    ctx.fillStyle = '#e36b30';
+    ctx.fillRect( agent.loc.x*s, agent.loc.y*s, s, s );
+    ctx.closePath();
+    frame = 0;
+    }
+    frame++;
+}
+
+function generate(){
+
+  var iters = 10;
+  var g = 0;
+
+  while( g<iters+1 ){
+  g ++;
+  for( var i in data ){
+    state[i] = data[i].state;
+  }
+
+  for ( var i in data ){
+
+    var alive = 0;
+    var direct = 0;
+    var adj = 0;
+
+    for( var k = 0; k < search.length; k++ ){
+      var x = data[i].x + search[k].x;
+      var y = data[i].y + search[k].y;
+
+      x = clamp(x,w);
+      y = clamp(y,h);
+
+      var index = w * y + x;
+
+      if( state[index] == 1 || state[index] == 2){
+        alive++;
+        if ( k < 4 ){
+        direct++;
+        }
+        else{
+        adj ++;
+        }
+      }
+    }
+
+    if( g < iters ){
+      if ( data[i].state == 0 && ( alive > 4) ){ data[i].state = 1 }
+      if ( data[i].state == 1 && ( alive < 2 ) ){ data[i].state = 0 }
+    }
+    if( g == iters ) {
+      if ( data[i].state == 0 && direct > 2 ){ data[i].state = 1 }
+    }
+    }
+}
+}
+
+function Agent(){
+
+  var back;
+  var target;
+  var searching = false;
+
+  var start = { x: 0, y: 0 };
+  this.loc = { x: 0, y: 0 };
+
+  this.connect = function(){
+
+    searching = false;
+    target = [];
+    back   = [];
+
+    var c = 0;
+
+    for ( i in data ){
+      if ( data[i].state == 1 ){
+        start.x = data[i].x;
+        start.y = data[i].y;
+        this.loc.x = start.x;
+        this.loc.y = start.y;
+        data[i].state = 2;
+        searching = true;
+        break;
+      }
+    }
+
+  }
+
+this.update = function(){
+
+var decisions = [];
+var adj = [];
+
+    for( var k in search){
+
+    var x = this.loc.x + search[k].x;
+    var y = this.loc.y + search[k].y;
+
+    x = clamp(x,w);
+    y = clamp(y,h);
+
+    var index = w * y + x;
+
+        if( data[index].state == 1 && k < 4 ){
+          decisions.push({x: x, y: y, i: index});
+        }
+        else if ( data[index].state == 1 ){
+          adj.push({x: x, y: y, i: index})
+        }
+    }
+
+    if ( decisions.length > 1 ){
+      back.push({x: this.loc.x, y: this.loc.y});
+    }
+    if ( decisions.length > 0 ){
+      var r = Math.floor(Math.random()*decisions.length);
+      this.loc.x = decisions[r].x;
+      this.loc.y = decisions[r].y;
+      data[decisions[r].i].state = 2;
+
+    }
+    else if ( back.length > 0 ){
+      this.loc.x = back[back.length-1].x;
+      this.loc.y = back[back.length-1].y;
+      back.pop();
+    }
+    else if ( decisions.length == 0 && back.length == 0 ){
+      var c = 0;
+
+      for ( var i in data ){
+        if( data[i].state == 2 ){
+        c ++;
+        }
+      }
+
+      var n = ( c < 20 ) ? 0
+      : 3
+
+        for ( var i in data ){
+        if( data[i].state == 2 ){
+        data[i].state = n;
+        }
+        }
+        this.connect();
+        render();
+        }
+      else{
+        searching = false;
+        render();
+      }
+
+    // Check for jagged adjecent tiles and remove
+    if ( adj.length > 0 ) {
+
+      for( var i in adj ){
+        var index_a = adj[i].i;
+        var index_b = w * this.loc.y + adj[i].x;
+        var index_c = w * adj[i].y + this.loc.x;
+
+        var a = data[index_a].state != 0;
+        var b = data[index_b].state == 0;
+        var c = data[index_c].state == 0;
+
+      if( a && b && c){
+        data[index_a].state = 0;
+      }
+    }
+    }
+}
+}
+
+function clamp(n, l){
+  if ( n > l-1 ){ n -= l }
+  else if ( n < 0 ){ n += l }
+  return( n );
+}
+
+//cv.addEventListener('mousedown', init);
+cv.addEventListener('mouseup', reset);
+
+</script>
+</body>
+</html>
