@@ -66,7 +66,6 @@ function resize(){
   cv.style.position = 'fixed';
 
   reset();
-  render();
 
 }
 
@@ -91,6 +90,8 @@ function reset(){
   console.log('Reset.');
   generate();
   agent.connect();
+
+  render();
 }
 
 function render(){
@@ -99,31 +100,23 @@ function render(){
     for ( var i in data ){
       switch( data[i].state ){
         case(0):
-        ctx.fillStyle = '#4cf29e';
+        ctx.fillStyle = '#51f6a2';
         ctx.fillRect( grid.x[data[i].x], grid.y[data[i].y], s, s );
         break;
         case(1):
-        ctx.fillStyle = '#36992a';
+        ctx.fillStyle = '#32302f';
         ctx.fillRect( grid.x[data[i].x], grid.y[data[i].y], s, s );
         break;
         case(2):
-        ctx.fillStyle = '#e36b30';
+        ctx.fillStyle = '#ff2525';
         ctx.fillRect( grid.x[data[i].x], grid.y[data[i].y], s, s );
         break;
         case(3):
-        ctx.fillStyle = '#2e7326';
-        ctx.fillRect( grid.x[data[i].x], grid.y[data[i].y], s, s );
-        break;
-        case(5):
-        ctx.fillStyle = '#e36b30';
+        ctx.fillStyle = '#32302f';
         ctx.fillRect( grid.x[data[i].x], grid.y[data[i].y], s, s );
         break;
       }
     }
-
-    // ctx.fillStyle = '#e36b30';
-    // ctx.fillRect( agent.loc.x*s, agent.loc.y*s, s, s );
-
 
   ctx.closePath();
 }
@@ -135,7 +128,7 @@ function main(){
     agent.update();
     //render();
     ctx.beginPath();
-    ctx.fillStyle = '#e36b30';
+    ctx.fillStyle = '#ffffff';
     ctx.fillRect( agent.loc.x*s, agent.loc.y*s, s, s );
     ctx.closePath();
     frame = 0;
