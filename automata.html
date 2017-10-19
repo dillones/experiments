@@ -104,15 +104,15 @@ function render(){
         ctx.fillRect( grid.x[data[i].x], grid.y[data[i].y], s, s );
         break;
         case(1):
-        ctx.fillStyle = '#32302f';
+        ctx.fillStyle = '#3b3b3b';
         ctx.fillRect( grid.x[data[i].x], grid.y[data[i].y], s, s );
         break;
         case(2):
-        ctx.fillStyle = '#ff2525';
+        ctx.fillStyle = '#7d8183';
         ctx.fillRect( grid.x[data[i].x], grid.y[data[i].y], s, s );
         break;
         case(3):
-        ctx.fillStyle = '#32302f';
+        ctx.fillStyle = '#FFFFFF';
         ctx.fillRect( grid.x[data[i].x], grid.y[data[i].y], s, s );
         break;
       }
@@ -128,7 +128,7 @@ function main(){
     agent.update();
     //render();
     ctx.beginPath();
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = '#ff1756';
     ctx.fillRect( agent.loc.x*s, agent.loc.y*s, s, s );
     ctx.closePath();
     frame = 0;
