@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+  <title>&Delta;</title>
+  <link rel="stylesheet" type="text/css" href="style.css">
+
+  </head>
+  <body>
+  <script type="text/javascript">
+  window.onload = init;
+  window.onresize = resize;
+
+  var display = document.createElement('canvas');
+  display.setAttribute('id', 'display');
+  document.body.appendChild(display);
+
+  var fullScreen = true;
+
+  var veh;
+  var ore;
+
+  var s = 1;
+  var w;
+  var h;
+
+  var now;
+  var last;
+  var frameRate;
+  var frameTarget = 1000/60;
+  var PI2 = 2*Math.PI;
+
+  var init = false;
+  var load = false;
+  var DEAD = false;
+
+  var u = false;
+  var d = false;
+  var l = false;
+  var r = false;
+
+  function init() {
+
+    init = false;
+    load = false;
+
+    resize();
+
+    veh = new Veh();
+    ore = [];
+
+    for ( i = 0; i < 32; i ++ ){
+      ore[i] = new Ore(i);
+    }
+
+    init = true;
+  }
+
+  function load_map(){
+    var count = 0;
+    var collisions;
+
+    while ( count < 60 ){
+    collisions = 0;
+    update();
+      for ( i = 0; i < ore.length; i ++ ){
+        if ( ore[i].oreHit > 0 || ore[i].hit > 0 ){
+          collisions ++;
+        }
+      }
+      count ++;
+    }
+    if ( collisions == 0 ){
+      load = true;
+      DEAD = false;
+    }
+  }
+
+  function respawn(event){
+    var x = event.clientX;
+    var y = event.clientY;
+
+    veh.loc.set(x,y);
+    veh.vel.set(0,0);
+    veh.dir.set(0,-1);
+    veh.angle = 0;
+    veh.col[0] = new Vec(0,-9);
+    veh.col[1] = new Vec(-7,9);
+    veh.col[2] = new Vec(7,9);
+
+    DEAD = false;
+  }
+
+  function resize(){
+    var canvas = document.getElementById('display');
+    var ctx = canvas.getContext('2d');
+
+    var offx = 0;
+    var offy = 0;
+
+    if ( fullScreen ){
+    w = window.innerWidth/s;
+    h = window.innerHeight/s;
+    }
+    else {
+      w = window.innerWidth/2;
+      h = window.innerHeight/2;
+    offx = window.innerWidth/2-w/2;
+    offy = window.innerHeight/2-h/2;
+    }
+
+    offx.toString();
+    offy.toString();
+
+    offx += 'px';
+    offy += 'px';
+
+    canvas.style.background = '#000000';
+    canvas.width = w*s;
+    canvas.height = h*s;
+    canvas.style.top = offy;
+    canvas.style.left = offx;
+    canvas.style.position = 'absolute';
+    canvas.style.cursor = 'crosshair';
+    canvas.style.imageSmoothingEnabled = false;
+    ctx.imageSmoothingEnabled = false;
+    ctx.scale(s,s);
+    console.log("RESIZE");
+  }
+
+  (function main() {
+      window.requestAnimationFrame( main, display );
+
+      var dt = DT();
+
+      if ( load ){
+        update(dt);
+        render(dt);
+      }
+      else if ( init ) {
+        title();
+      }
+  })();
+
+  function update(dt){
+
+    if ( !DEAD ){
+      veh.update(dt);
+    }
+    for ( i = 0; i < ore.length; i ++ ){
+      ore[i].update(dt, veh.loc, veh.col);
+    }
+
+    blackboard();
+
+  }
+
+  function render(dt) {
+
+    var canvas = document.getElementById('display');
+    var ctx = canvas.getContext('2d');
+
+      var fill = '#FFFFFF';
+      ctx.beginPath();
+      ctx.clearRect(0,0,w,h);
+      ctx.fillStyle = fill;
+      ctx.closePath();
+
+      if (!DEAD){
+      veh.render(ctx);
+      }
+
+      for ( i = 0; i < ore.length; i ++ ){
+        ore[i].render(ctx);
+      }
+
+      // ctx.beginPath();
+      // ctx.fillStyle = fill;
+      // ctx.font = '11px Monospace';
+      // ctx.fillText('Framerate : ' + Math.round(frameRate), 20, 20);
+      // if ( DEAD ){
+      //   ctx.fillText('D E A D', 20, 40);
+      //   ctx.fillText('Click anywhere to respawn. Refresh page to load new map.', 20, 60);
+      // }
+      // ctx.fill();
+      ctx.closePath();
+
+  }
+
+  display.addEventListener("mouseup", respawn);
+  window.addEventListener('keyup', control);
+  window.addEventListener('keydown', control);
+
+  function control(event){
+    var k = event.key;
+    var trigger;
+    var key;
+
+    if ( event.type == 'keyup' ){
+      trigger = false;
+    }
+    if ( event.type == 'keydown' ){
+      trigger = true;
+    }
+
+    switch(k){
+      case ('ArrowUp'):
+      u = trigger;
+      break;
+      case ('ArrowDown'):
+      d = trigger;
+      break;
+      case ('ArrowLeft'):
+      l = trigger;
+      break;
+      case ('ArrowRight'):
+      r = trigger;
+      break;
+      case ('f'):
+      FS();
+      break;  }
+
+  }
+
+  function title(){
+
+    var canvas = document.getElementById('display');
+    var ctx = canvas.getContext('2d');
+      ctx.beginPath();
+      ctx.clearRect(0,0,w,h);
+      ctx.fillStyle = '#FFF';
+      ctx.font = '11px Monospace';
+
+      ctx.fillText('Loading Stage - There is currently no loading animation. This may take a few moments.', 20, 20);
+      ctx.fillText('Currently the only objective is to not get hit by the polygons.', 20, 40);
+      ctx.fillText('Use ARROW keys to move. Click Anywhere to spawn new vehicle.', 20, 60);
+
+      ctx.fill();
+      ctx.closePath();
+
+      load_map();
+  }
+
+  function Veh(){
+
+    this.acc = 0.1;
+    this.angle = 0;
+
+    this.loc = new Vec(w/2,h/2);
+    this.vel = new Vec(0,0);
+    this.dir = new Vec(0,-1);
+    this.col = [];
+    this.col[0] = new Vec(0,-9);
+    this.col[1] = new Vec(-7,9);
+    this.col[2] = new Vec(7,9);
+
+    this.update = function(dt){
+
+      var loc = this.loc;
+      var vel = this.vel;
+      var dir = this.dir;
+      var acc = 0;
+      var angle = 0;
+
+      if ( u ){
+        acc = this.acc * dt;
+      }
+      if ( l ){
+        angle = -0.005 * dt;
+      }
+      if ( r ){
+        angle = 0.005 * dt;
+      }
+
+      this.angle += angle;
+      var grip = (this.angle - this.angle * .95) * dt;
+      this.angle -= grip;
+
+      this.dir.rotate(this.angle);
+      for ( i = 0; i < this.col.length; i ++ ){
+        this.col[i].rotate(this.angle);
+      }
+
+      vel.add(dir.x * acc, dir.y * acc);
+      var gripx = (vel.x - vel.x * .99) * dt;
+      var gripy = (vel.y - vel.y * .99) * dt;
+      vel.add(-gripx, -gripy);
+      // var vx = vel.x * dt;
+      // var vy = vel.y * dt;
+      loc.add(vel.x, vel.y);
+
+      if ( loc.x < 0 ) loc.x += w;
+      if ( loc.x > w ) loc.x -= w;
+      if ( loc.y < 0 ) loc.y += h;
+      if ( loc.y > h ) loc.y -= h;
+
+    }
+
+    this.render = function(ctx){
+      var col = this.col;
+      var loc = this.loc;
+
+      // var x = Math.floor(loc.x*100);
+      // var y = Math.floor(loc.y*100);
+      //
+      // x *= 0.01;
+      // y *= 0.01;
+
+      var x = loc.x;
+      var y = loc.y;
+
+      ctx.beginPath();
+
+        ctx.moveTo(col[0].x + x, col[0].y + y);
+
+        for ( i = 0; i < col.length; i ++ ){
+          var n = (i + 1)%col.length;
+          ctx.lineTo(col[n].x + x, col[n].y + y);
+        }
+        ctx.strokeStyle = '#FFF';
+        ctx.stroke();
+      ctx.closePath();
+    }
+  }
+
+  function Ore(i){
+
+    var id = i;
+    var x = Math.random() * w;
+    var y = Math.random() * h;
+
+    var vx = (Math.random() - 0.5) * 1;
+    var vy = (Math.random() - 0.5) * 1;
+
+    this.loc = new Vec(x, y);
+    this.vel = new Vec(vx,vy);
+    this.mag = this.vel.mag();
+    this.acc = new Vec(0,0);
+    this.angle = Math.random() * 0.001;
+    this.fill = '#FFF';
+
+    var scale = Math.random() * 40 + 20;
+    var sides = Math.floor( Math.random() * 3) + 6;
+
+    var a = 2*Math.PI / sides;
+
+    this.col = [];
+
+    for ( i = 0; i < sides; i ++ ){
+      var s = Math.random() * .9 + .8;
+      this.col[i] = new Vec(0, scale * s);
+      this.col[i].rotate(a*i);
+    }
+
+    this.hit = 0;
+    this.oreHit = 0;
+
+    this.update = function(dt, v, target){
+
+      var loc = this.loc;
+      var col = this.col;
+
+      this.hit = 0;
+      //this.oreHit = 0;
+
+      for ( i = 0; i < col.length; i ++ ){
+      col[i].rotate(this.angle);
+      var n = (i + 1)%col.length;
+
+        for( k = 0; k < veh.col.length; k ++ ){
+          var test = this.check(loc.x + col[i].x, loc.y + col[i].y, loc.x + col[n].x, loc.y + col[n].y, loc.x, loc.y, v.x + target[k].x, v.y + target[k].y);
+                if ( test ){
+                this.hit ++;
+                DEAD = true;
+              }
+        }
+      }
+
+      if ( this.oreHit > 0 ){
+       this.acc.normal();
+       this.acc.mult(-1);
+       this.vel.add(this.acc.x, this.acc.y);
+       this.vel.normal();
+       this.vel.mult(this.mag);
+      }
+      else {
+        this.vel.normal();
+        this.vel.mult(this.mag);
+      }
+
+      this.oreHit = 0;
+
+      loc.add(this.vel.x, this.vel.y);
+
+      if ( loc.x < 0 ) loc.x += w;
+      if ( loc.x > w ) loc.x -= w;
+      if ( loc.y < 0 ) loc.y += h;
+      if ( loc.y > h ) loc.y -= h;
+
+      this.acc.set(0,0);
+
+    }
+
+    this.check = function(x1, y1, x2, y2, x3, y3, x, y){
+      var denominator = ((y2 - y3)*(x1 - x3) + (x3 - x2)*(y1 - y3));
+      var a = ((y2 - y3)*(x - x3) + (x3 - x2)*(y - y3)) / denominator;
+      var b = ((y3 - y1)*(x - x3) + (x1 - x3)*(y - y3)) / denominator;
+      var c = 1 - a - b;
+
+      return ( 0 <= a && a <= 1 && 0 <= b && b <= 1 && 0 <= c && c <= 1 );
+    }
+
+    this.detect = function( x, y, px, py, id ){
+      var col = this.col;
+      var loc = this.loc;
+
+      for ( i = 0; i < col.length; i ++ ){
+        var n = (i + 1)%col.length;
+        var test = this.check(loc.x + col[i].x, loc.y + col[i].y, loc.x + col[n].x, loc.y + col[n].y, loc.x, loc.y, x+px, y+py);
+        if ( test ){
+          this.oreHit ++;
+          ore[id].oreHit++;
+          this.acc.add( (x) - loc.x, (y) - loc.y );
+
+          ore[id].acc.add( loc.x - (x), loc.y - (y) );
+        }
+      }
+    }
+
+    this.render = function(ctx){
+      var col = this.col;
+      var loc = this.loc;
+      var fill = this.fill;
+
+      if ( this.hit > 0 ){
+        fill = '#f45f41';
+      }
+      // if ( this.oreHit > 0 ){
+      //   fill = '#42f4e2';
+      // }
+
+      ctx.beginPath();
+        ctx.moveTo(col[0].x + loc.x, col[0].y + loc.y);
+
+        for ( i = 0; i < col.length; i ++ ){
+          var n = (i + 1)%col.length;
+          ctx.lineTo(col[n].x + loc.x, col[n].y + loc.y);
+        }
+
+      ctx.strokeStyle = fill;
+      ctx.stroke();
+      ctx.closePath();
+  }
+  }
+
+  function blackboard(){
+
+    for ( i = 0; i < ore.length; i ++ ){
+    for ( k = 0; k < ore.length; k ++ ){
+        if ( k != i ){
+          for( p = 0; p < ore[k].col.length; p ++ ){
+            ore[i].detect(ore[k].loc.x, ore[k].loc.y, ore[k].col[p].x, ore[k].col[p].y, k);
+          }
+        }
+    }
+    }
+  }
+
+  function Vec( x, y ){
+
+    this.x = x;
+    this.y = y;
+
+    this.set = function( x, y ){
+      this.x = x;
+      this.y = y;
+    }
+    this.normal = function(){
+      var n = (this.x * this.x) + (this.y * this.y);
+      if ( n != 0 ){
+      n = Math.sqrt( n );
+      this.x /= n;
+      this.y /= n;
+      }
+    }
+    this.mag = function(){
+      var n = (this.x * this.x) + (this.y * this.y);
+      if ( n != 0 ){
+      n = Math.sqrt( n );
+      return(n);
+      }
+      else {
+      return(0);
+      }
+    }
+    this.add = function( x, y ){
+      this.x += x;
+      this.y += y;
+    }
+    this.mult = function( n ){
+      this.x *= n;
+      this.y *= n;
+    }
+    this.rotate = function( angle ){
+      var ox = this.x;
+      var oy = this.y
+      this.x = ox * Math.cos( angle ) - oy * Math.sin( angle );
+      this.y = ox * Math.sin( angle ) + oy * Math.cos( angle );
+    }
+    this.floor = function(){
+      var x = this.x;
+      var y = this.y;
+      this.x = Math.round(x);
+      this.y = Math.round(y);
+    }
+  }
+
+  function DT(){
+    now = performance.now();
+
+    var dt = (now - last) / frameTarget;
+    frameRate = 1000/(now - last);
+    last = now;
+
+    return(dt);
+  }
+
+  function FS(){
+
+    var canvas = document.getElementById('display');
+    canvas.requestFullScreen();
+
+  }
+  </script>
+  </body>
+</html>
