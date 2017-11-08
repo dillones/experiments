@@ -46,11 +46,6 @@ var y = 0
 var w = 16
 var h = 18
 
-var frameCount = 0
-var frame = 0
-var n = 0
-var run = false
-
 var data = []
 
 function init(){
@@ -72,22 +67,27 @@ function resize(){
 function main(){
   requestAnimationFrame(main)
 
-  frameCount ++
-
-  if ( frameCount % 20 == 0 ){
-    frame ++
-    frame %= 2
-  }
-
   agent.update()
   agent.render()
 }
 
 function Agent(){
 
-  this.update = function(){
+  var frameCount = 0
+  var frame = 0
+  var n = 0
+  var run = false
 
+  this.update = function(){
+    if( run || frameCount % 20 != 0 ){
+      frameCount ++
+    }
+    if ( frameCount % 20 == 0 ){
+        frame ++
+        frame %= 2
+      }
   }
+
   this.render = function(){
     ctx.fillStyle = '#000'
     ctx.fillRect(0,0,cv.width, cv.height)
@@ -96,12 +96,10 @@ function Agent(){
     if( run ){
     ctx.drawImage(sheet, (frame+1) * 16, n * 18, sw, sh, x, y, w, h)
     }
-    else{
+    else if( frameCount % 20 == 0 ){
     ctx.drawImage(sheet, 0, n * 18, sw, sh, x, y, w, h)
     }
   }
-
-}
 
 window.addEventListener( "keydown", keydown, false )
 window.addEventListener( "keyup", keyup, false )
@@ -180,6 +178,8 @@ function mousedown( event ){
 }
 function mouseup( event ){
   run = false;
+}
+
 }
 
 </script>
