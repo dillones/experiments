@@ -64,7 +64,7 @@ function resize(){
   cv.height = window.innerHeight
   ctx.scale(4,4)
   ctx.imageSmoothingEnabled = false
-  ctx.translate( cv.width/8-sw/2, cv.height/8-sh/2 )
+  ctx.translate( Math.round(cv.width/8-sw/2), Math.round(cv.height/8-sh/2) )
 }
 
 function main(){
