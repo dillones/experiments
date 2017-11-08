@@ -111,7 +111,6 @@ window.addEventListener( "mouseup", mouseup, false )
 window.addEventListener( "touchstart", mousedown, false )
 window.addEventListener( "touchmove", mousedown, false )
 window.addEventListener( "touchend", mouseup, false )
-window.addEventListener( "touchmove", mousedown, false )
 
 function keydown( event ){
 
@@ -146,7 +145,11 @@ function mousedown( event ){
   var y;
 
   switch( event.type ) {
-    case ('touchstart' || 'touchmove'):
+    case ('touchstart'):
+      x = event.touches[0].clientX
+      y = event.touches[0].clientY
+    break;
+    case ('touchmove'):
       x = event.touches[0].clientX
       y = event.touches[0].clientY
     break;
