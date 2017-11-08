@@ -29,6 +29,7 @@ window.onload = init
 window.onresize = resize
 
 var cv = document.createElement('canvas')
+document.body.appendChild(cv)
 var ctx = cv.getContext('2d')
 
 var sheet = new Image()
@@ -55,8 +56,9 @@ var data = []
 function init(){
   agent = new Agent();
   resize()
-  document.body.appendChild(cv)
-
+  document.addEventListener("contextmenu", function(e){
+      e.preventDefault();
+  }, false);
   main()
 }
 function resize(){
@@ -105,7 +107,11 @@ window.addEventListener( "keydown", keydown, false )
 window.addEventListener( "keyup", keyup, false )
 window.addEventListener( "mousedown", mousedown, false )
 window.addEventListener( "mouseup", mouseup, false )
-// window.addEventListener( "touchmove", touchmove, false )
+
+window.addEventListener( "touchstart", mousedown, false )
+window.addEventListener( "touchmove", mousedown, false )
+window.addEventListener( "touchend", mouseup, false )
+window.addEventListener( "touchmove", mousedown, false )
 
 function keydown( event ){
 
@@ -135,26 +141,39 @@ function keyup( event ){
 }
 
 function mousedown( event ){
-  if( Math.abs(window.innerWidth/2-event.clientX) > Math.abs(window.innerHeight/2-event.clientY) ){
-    if( event.clientX < window.innerWidth/2 ){
+
+  var x;
+  var y;
+
+  switch( event.type ) {
+    case ('touchstart' || 'touchmove'):
+      x = event.touches[0].clientX
+      y = event.touches[0].clientY
+    break;
+    case ('mousedown'):
+      x = event.clientX
+      y = event.clientY
+    break;
+  }
+
+  if( Math.abs(window.innerWidth/2-x) > Math.abs(window.innerHeight/2-y) ){
+    if( x < window.innerWidth/2 ){
       n = 3;
-      run = true;
     }
-    if( event.clientX > window.innerWidth/2 ){
+    if( x > window.innerWidth/2 ){
       n = 2;
-      run = true;
     }
   }
   else{
-    if( event.clientY < window.innerHeight/2 ){
+    if( y < window.innerHeight/2 ){
       n = 1;
-      run = true;
     }
-    if( event.clientY > window.innerHeight/2 ){
+    if( y > window.innerHeight/2 ){
       n = 0;
-      run = true;
     }
   }
+  run = true;
+
 }
 function mouseup( event ){
   run = false;
