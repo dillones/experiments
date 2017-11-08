@@ -2,9 +2,6 @@
 <head>
   <title>Cartridge</title>
   <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0">
-  <link rel="icon"
-        type="image/png"
-        href=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAMFBMVEUAAAAREREiIiIzMzNERERVVVVmZmZ3d3eIiIiZmZmqqqq7u7vMzMzd3d3u7u7///97EBgKAAAAMElEQVR4AWPABPwoACSALEtAgB9NgB9NBT+yIJziR2YhBND0YRqMYjNhl2J6DgMAAN8/A4V9cUOqAAAAAElFTkSuQmCC />
   <style>
     body {
       background: #000;
@@ -49,11 +46,13 @@ var h = 18
 var data = []
 
 function init(){
-  agent = new Agent();
-  resize()
+
   document.addEventListener("contextmenu", function(e){
       e.preventDefault();
   }, false);
+
+  agent = new Agent();
+  resize()
   main()
 }
 function resize(){
@@ -61,7 +60,7 @@ function resize(){
   cv.height = window.innerHeight
   ctx.scale(4,4)
   ctx.imageSmoothingEnabled = false
-  ctx.translate( Math.round(cv.width/8-sw/2), Math.round(cv.height/8-sh/2) )
+  //ctx.translate( Math.round(cv.width/8-sw/2), Math.round(cv.height/8-sh/2) )
 }
 
 function main(){
@@ -73,30 +72,54 @@ function main(){
 
 function Agent(){
 
+  this.x = 0;
+  this.y = 0;
+
   var frameCount = 0
   var frame = 0
   var n = 0
   var run = false
 
+  var x = 0;
+  var y = 0;
+
   this.update = function(){
-    if( run || frameCount % 20 != 0 ){
+    if( run || frameCount %16 != 0 ){
+      ctx.fillStyle = '#000'
+      ctx.fillRect(x, y, 16, 18)
       frameCount ++
+      switch( n ){
+        case(0):
+          y += 1
+        break
+        case(1):
+          y -= 1
+        break
+        case(2):
+          x += 1
+        break
+        case(3):
+          x -= 1
+        break
+      }
+      this.x = x;
+      this.y = y;
     }
-    if ( frameCount % 20 == 0 ){
+    if ( frameCount % 8 == 0 ){
         frame ++
         frame %= 2
-      }
+    }
   }
 
   this.render = function(){
-    ctx.fillStyle = '#000'
-    ctx.fillRect(0,0,cv.width, cv.height)
+    // ctx.fillStyle = '#000'
+    // ctx.fillRect(-cv.width,-cv.height,cv.width*2, cv.height*2)
     ctx.drawImage(sheet, (frame+1) * 16, n * 18, sw, sh, x, y, w, h)
 
     if( run ){
     ctx.drawImage(sheet, (frame+1) * 16, n * 18, sw, sh, x, y, w, h)
     }
-    else if( frameCount % 20 == 0 ){
+    else if( frameCount % 16 == 0 ){
     ctx.drawImage(sheet, 0, n * 18, sw, sh, x, y, w, h)
     }
   }
@@ -157,19 +180,19 @@ function mousedown( event ){
     break;
   }
 
-  if( Math.abs(window.innerWidth/2-x) > Math.abs(window.innerHeight/2-y) ){
-    if( x < window.innerWidth/2 ){
+  if( Math.abs(agent.x*4-x) > Math.abs(agent.y*4-y) ){
+    if( x < agent.x*4 ){
       n = 3;
     }
-    if( x > window.innerWidth/2 ){
+    if( x > agent.x*4 ){
       n = 2;
     }
   }
   else{
-    if( y < window.innerHeight/2 ){
+    if( y < agent.y*4 ){
       n = 1;
     }
-    if( y > window.innerHeight/2 ){
+    if( y > agent.y*4){
       n = 0;
     }
   }
