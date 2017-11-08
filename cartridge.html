@@ -1,0 +1,165 @@
+<html>
+<head>
+  <title>Cartridge</title>
+  <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0">
+  <link rel="icon"
+        type="image/png"
+        href=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAMFBMVEUAAAAREREiIiIzMzNERERVVVVmZmZ3d3eIiIiZmZmqqqq7u7vMzMzd3d3u7u7///97EBgKAAAAMElEQVR4AWPABPwoACSALEtAgB9NgB9NBT+yIJziR2YhBND0YRqMYjNhl2J6DgMAAN8/A4V9cUOqAAAAAElFTkSuQmCC />
+  <style>
+    body {
+      background: #000;
+      margin: 0;
+      padding: 0;
+      color: #fff;
+      user-select: none;
+      overflow: hidden;
+    }
+    canvas{
+      top: 0;
+      left: 0;
+      position: fixed;
+    }
+  </style>
+</head>
+<body>
+<script>
+var url = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAACACAMAAACMX59YAAAABlBMVEUAAAD///+l2Z/dAAAAzklEQVR4Ae2UgQrDIBBDc///02PUSjjKzsZJ3ciDIq9IwOMI3kQDB7JHiE4oDk5SHPwWxRHohOCbBIR+zg9x/nxkldNJ5B9Zs18HgD1b9vkZ9Ndkz0R8cp2fb6T/CXAAdN+pkdxIbiSOGvNDOACNGPImFICTGPJuewUcX9SeA+aHyDdqp+NyFe+5vsr9b9VIZWtXASgCFjQScauh3EgcpDj4KYqD90HwPQJ65cSYn3xriAjZ1UJa2UhKQ9UBKAIeaCS6vxZjjDHGGGOMMeYFr8cH6fx5G18AAAAASUVORK5CYII='
+
+window.onload = init
+window.onresize = resize
+
+var cv = document.createElement('canvas')
+var ctx = cv.getContext('2d')
+
+var sheet = new Image()
+sheet.src = url
+
+console.log(ctx)
+
+var sx = 16
+var sy = 0
+var sw = 16
+var sh = 18
+var x = 0
+var y = 0
+var w = 16
+var h = 18
+
+var frameCount = 0
+var frame = 0
+var n = 0
+var run = false
+
+var data = []
+
+function init(){
+  agent = new Agent();
+  resize()
+  document.body.appendChild(cv)
+
+  main()
+}
+function resize(){
+  cv.width = window.innerWidth
+  cv.height = window.innerHeight
+  ctx.scale(4,4)
+  ctx.imageSmoothingEnabled = false
+  ctx.translate( cv.width/8-sw/2, cv.height/8-sh/2 )
+}
+
+function main(){
+  requestAnimationFrame(main)
+
+  frameCount ++
+
+  if ( frameCount % 20 == 0 ){
+    frame ++
+    frame %= 2
+  }
+
+  agent.update()
+  agent.render()
+}
+
+function Agent(){
+
+  this.update = function(){
+
+  }
+  this.render = function(){
+    ctx.fillStyle = '#000'
+    ctx.fillRect(0,0,cv.width, cv.height)
+    ctx.drawImage(sheet, (frame+1) * 16, n * 18, sw, sh, x, y, w, h)
+
+    if( run ){
+    ctx.drawImage(sheet, (frame+1) * 16, n * 18, sw, sh, x, y, w, h)
+    }
+    else{
+    ctx.drawImage(sheet, 0, n * 18, sw, sh, x, y, w, h)
+    }
+  }
+
+}
+
+window.addEventListener( "keydown", keydown, false )
+window.addEventListener( "keyup", keyup, false )
+window.addEventListener( "mousedown", mousedown, false )
+window.addEventListener( "mouseup", mouseup, false )
+// window.addEventListener( "touchmove", touchmove, false )
+
+function keydown( event ){
+
+  switch( event.key ){
+    case('ArrowUp'):
+      n = 1
+      run = true
+    break;
+    case('ArrowDown'):
+      n = 0
+      run = true
+    break;
+    case('ArrowLeft'):
+      n = 3
+      run = true
+    break;
+    case('ArrowRight'):
+      n = 2
+      run = true
+    break;
+  }
+
+}
+
+function keyup( event ){
+  run = false
+}
+
+function mousedown( event ){
+  if( Math.abs(window.innerWidth/2-event.clientX) > Math.abs(window.innerHeight/2-event.clientY) ){
+    if( event.clientX < window.innerWidth/2 ){
+      n = 3;
+      run = true;
+    }
+    if( event.clientX > window.innerWidth/2 ){
+      n = 2;
+      run = true;
+    }
+  }
+  else{
+    if( event.clientY < window.innerHeight/2 ){
+      n = 1;
+      run = true;
+    }
+    if( event.clientY > window.innerHeight/2 ){
+      n = 0;
+      run = true;
+    }
+  }
+}
+function mouseup( event ){
+  run = false;
+}
+
+</script>
+</body>
+</html>
