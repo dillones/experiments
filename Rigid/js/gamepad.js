@@ -26,6 +26,7 @@ function Gamepad(){
 
   this.update = function(){
     gamepad = navigator.getGamepads ? navigator.getGamepads() : (navigator.webkitGetGamepads ? navigator.webkitGetGamepads : []);
+    if(gamepad[0] != null){
     gamepad = gamepad[0];
 
     var x = ( Math.abs(gamepad.axes[0]) < 0.005 ) ? 0
@@ -39,6 +40,7 @@ function Gamepad(){
 
     if(gamepad.buttons[0].pressed){
       reset();
+    }
     }
   }
 
