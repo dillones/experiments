@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Rigid</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="msapplication-tap-highlight" content="no">
+    <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width">
+    <!-- <link rel="manifest" href="/manifest.json">
+    <link rel="icon" href="img/icon.png"> -->
+    <!-- <link href="https://fonts.googleapis.com/css?family=Roboto+Mono" rel="stylesheet"> -->
+    <link rel="stylesheet" type="text/css" href="css/index.css">
+</head>
+<body>
+    <script src="https://ajax.googleapis.com/ajax/libs/threejs/r84/three.min.js"></script>
+    <script type="text/javascript" src="js/loader.js"></script>
+    <script type="text/javascript" src="js/gamepad.js"></script>
+
+    <script type"text/javascript">
+    window.onload = init;
+
+    var scene, camera, renderer, gamepad;
+    var mesh, plane, surface, axis;
+    var raycaster, intersects;
+    var velocity, direction, rotation, normal, angle, radian;
+    var force = 0.04;
+    var turn  = 0.009;
+    var inertia = 0.85;
+    var grip = 0.98;
+    var brake = 0.9;
+    var origin, up, target, current, lookAt, start;
+    var rig;
+
+    var ACCELERATE, BRAKE;
+
+    var beacon = [];
+
+    function init(){
+
+      scene = new THREE.Scene();
+      // scene.fog = new THREE.FogExp2( 0x028a90, 0.01 );
+
+      renderer = new THREE.WebGLRenderer( { logarithmicDepthBuffer: true } );
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(.5);
+      document.body.appendChild(renderer.domElement);
+
+      up            = new THREE.Vector3(0,0,1);
+      origin        = new THREE.Vector3(0,0,0);
+      gravity       = new THREE.Vector3(0,0,.05);
+      velocity      = new THREE.Vector3();
+      acceleration  = new THREE.Vector3();
+      direction     = new THREE.Vector3();
+      target        = new THREE.Vector3(0,0,1);
+      lookAt        = new THREE.Vector3(0,0,1);
+      current       = new THREE.Vector3();
+      normal        = new THREE.Vector3();
+      rig           = new THREE.Vector3(0,-10,10);
+      ray           = new THREE.Vector3(0,0,-5);
+        // start         = new THREE.Vector3(-12.6,-608,171.4);
+      start         = new THREE.Vector3(0,0,20);
+
+      rotation = 0;
+      angle = 0;
+      radian = 0;
+
+      camera = new THREE.PerspectiveCamera(120, window.innerWidth/window.innerHeight, 0.01, 400);
+      camera.up.copy(up);
+
+      var box = new THREE.BoxGeometry(2,3.6,2);
+      var edges = new THREE.EdgesGeometry(box);
+      var material = new THREE.MeshBasicMaterial({color:0xffffff, wireframe: false, shading: THREE.FlatShading});
+      mesh = new THREE.LineSegments(edges, material);
+      mesh.visible = true;
+      raycaster = new THREE.Raycaster(mesh.position, gravity, 0, 2);
+
+      gamepad = new Gamepad();
+      var loader = new THREE.OBJLoader();
+
+      loader.load(
+
+        'stage.obj',
+
+        function ( object ) {
+          console.log(object.children);
+          var id = 0;
+          for( var i in object.children ){
+            switch(object.children[i].name){
+
+            case('Plane'):
+
+              var PlaneGeometry = object.children[i].geometry;
+              //PlaneGeometry.scale(100,100,100);
+
+              var wireframe = new THREE.MeshBasicMaterial({color: 0x00fabe, wireframe: true, side: THREE.BackSide, shading: THREE.FlatShading});
+              plane = new THREE.Mesh(PlaneGeometry, wireframe);
+              plane.visible = false;
+              plane.position.set(0,0,0);
+              plane.geometry.computeFaceNormals();
+              var edges = new THREE.EdgesGeometry(PlaneGeometry);
+              var flatshade = new THREE.MeshBasicMaterial({color: 0xffffff, wireframe: false, side: THREE.DoubleSide, shading: THREE.FlatShading});
+              //flatshade.shininess = 0;
+              surface = new THREE.LineSegments(edges, flatshade);
+              var floor = new THREE.Mesh(PlaneGeometry, new THREE.MeshBasicMaterial({color: 0x000000, side: THREE.FrontSide, fog: false}));
+              surface.visible = true;
+              surface.name = 'surface';
+              surface.position.set(0,0,-3);
+              floor.position.set(0,0,-.5);
+              surface.add(floor);
+              var light = new THREE.HemisphereLight(0xffffff, 0x000000);
+              light.position.set(1,0,0);
+              //light.position.set(0,0,20);
+
+              scene.add(plane);
+              scene.add(mesh);
+              scene.add(surface);
+              //scene.add(floor);
+              scene.add(light);
+
+              mesh.position.copy(start);
+              main();
+
+            break;
+
+            case('Vehicle'):
+              var geometry = object.children[i].geometry.clone();
+              var edges = new THREE.EdgesGeometry(geometry);
+
+              mesh.geometry = edges.clone();
+              mesh.position.copy(start);
+              geometry.scale(.95, .95, .95);
+              mesh.add(new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({color: 0x000000 })))
+
+            break;
+            case('Grid'):
+              var geometry = object.children[i].geometry.clone();
+              var edges = new THREE.EdgesGeometry(geometry);
+
+              var ico = new THREE.Mesh(geometry, new THREE.MeshLambertMaterial({color: 0x76b347 }));
+              ico.position.set(0,0,-5);
+
+              surface.add(ico);
+            break;
+            }
+          }
+
+        },
+        function ( xhr ) {
+          //console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
+        },
+        function ( error ) {
+          //console.log( 'Stage Loading Failure.' );
+        }
+      );
+
+    }
+
+function main(){
+
+  window.requestAnimationFrame(main);
+  gamepad.update();
+  mesh.updateMatrixWorld();
+
+  camera.position.copy(rig);
+
+  direction = mesh.up.clone();
+  direction.applyMatrix4( mesh.matrixWorld );
+  direction.sub(mesh.position);
+
+  if(ACCELERATE){
+    acceleration.copy(direction).multiplyScalar(force);
+    velocity.add(acceleration);
+  }
+  if(BRAKE){
+    velocity.multiplyScalar(brake);
+  }
+
+  velocity.multiplyScalar(grip);
+  mesh.position.add(velocity);
+
+  intersects = [];
+  plane.raycast( raycaster, intersects );
+
+if( intersects.length > 0 ){
+  mesh.position.copy(intersects[0].point);
+  normal.copy(intersects[0].face.normal);
+}
+else{
+  velocity.sub(gravity);
+}
+
+angle += radian;
+angle *= inertia;
+
+rotation += angle;
+
+target.copy(normal);
+
+target.sub(lookAt);
+target.multiplyScalar(0.1);
+lookAt.add(target);
+lookAt.add(mesh.position);
+
+mesh.lookAt(lookAt);
+lookAt.sub(mesh.position);
+
+mesh.rotateOnAxis(up, rotation);
+camera.position.applyAxisAngle(up, rotation);
+camera.position.add(mesh.position);
+camera.lookAt(mesh.position);
+
+renderer.render(scene, camera);
+
+}
+
+function reset(){
+  mesh.position.copy(start);
+  velocity.set(0,0,0);
+  rotation = 0;
+}
+window.addEventListener('keydown', keydown);
+window.addEventListener('keyup', keyup);
+
+function keydown(event){
+  switch(event.key){
+    case('ArrowUp'):
+      ACCELERATE = true;
+    break;
+    case('ArrowDown'):
+      BRAKE = true;
+    break;
+    case('ArrowLeft'):
+      radian = +turn;
+    break;
+    case('ArrowRight'):
+      radian = -turn;
+    break;
+  }
+}
+
+function keyup(event){
+  switch(event.key){
+    case(' '):
+      console.log(intersects.length);
+    break;
+    case('ArrowUp'):
+      ACCELERATE = false;
+    break;
+    case('ArrowDown'):
+      BRAKE = false;
+    break;
+    case('ArrowLeft'):
+      radian = 0;
+    break;
+    case('ArrowRight'):
+      radian = 0;
+    break;
+    case('r'):
+      reset();
+    break;
+  }
+}
+
+</script>
+</body>
+</html>
