@@ -25,7 +25,7 @@
 
         var scene, camera, renderer;
         var width, height;
-        var hive, candy, ico;
+        var hive, candy, lines;
         var agent = [];
         var state = [];
 
@@ -42,7 +42,7 @@
           var geometry = new THREE.Geometry();
           var material = new THREE.PointsMaterial({color: 0xffffff, size: 12, vertexColors: THREE.VertexColors});
 
-          while( agent.length < 60 ){
+          while( agent.length < 200 ){
             var i = agent.length;
             agent[i] = new Agent();
             state[i] = new Agent();
@@ -54,9 +54,14 @@
           scene.add(hive);
 
           var geometry = new THREE.Geometry();
+          var lineMaterial = new THREE.MeshBasicMaterial({color: 0x46f993})
+          lines = new THREE.LineSegments(geometry, lineMaterial);
+          scene.add(lines);
+
+          var geometry = new THREE.Geometry();
           geometry.vertices.push(new THREE.Vector3(0,0,0));
 
-          candy = new THREE.Points(geometry, new THREE.PointsMaterial({color: 0xf71a5c, size: 36}));
+          candy = new THREE.Points(geometry, new THREE.PointsMaterial({color: 0xf71a5c, size: 24}));
           scene.add(candy);
 
           main();
@@ -68,8 +73,8 @@
           width = window.innerWidth;
           height = window.innerHeight;
 
-          camera = new THREE.OrthographicCamera( width / - 2, width / 2, height / 2, height / - 2, 0, 1000 );
-          camera.position.z = 900;
+          camera = new THREE.OrthographicCamera( width / - 2, width / 2, height / 2, height / - 2, 0, 2000 );
+          camera.position.z = 1200;
           renderer.setSize(width, height);
 
         }
@@ -77,6 +82,8 @@
         function main(){
 
           window.requestAnimationFrame(main);
+
+          lines.geometry = new THREE.Geometry();
 
           for( var i in agent ){
             state[i].loc.copy(agent[i].loc);
@@ -87,7 +94,11 @@
             agent[i].update(i, state);
           }
 
+          //lines.geometry.mergeVertices();
+          lines.geometry.verticesNeedUpdate = true;
+
           hive.geometry.verticesNeedUpdate = true;
+
           renderer.render(scene, camera);
         }
 
@@ -113,10 +124,10 @@
 
           this.coh          = new THREE.Vector3();
           this.coh.force    = 1;
-          this.coh.distance = 30;
+          this.coh.distance = 40;
 
           this.gravity = new THREE.Vector3();
-          this.gravity.force = -0.0001;
+          this.gravity.force = -0.00001;
           this.grip = 0.995;
 
           var life = 0;
@@ -142,6 +153,11 @@
               this.coh.add(steer);
             }
 
+            if( dist < 60 ){
+              lines.geometry.vertices.push(this.loc);
+              lines.geometry.vertices.push(state.loc);
+            }
+
           }
 
           this.update = function(index, state){
@@ -151,7 +167,7 @@
             this.ali.set(0,0,0);
             this.coh.set(0,0,0);
 
-            if( this.loc.length() > 20 ){
+            if( this.loc.length() > 100 ){
               this.gravity.copy(this.loc);
               this.gravity.multiplyScalar(this.gravity.force);
             }
@@ -170,9 +186,9 @@
               hive.geometry.colors[index].set(candy.material.color);
               hive.geometry.colorsNeedUpdate = true;
 
-              var h = Math.random();
-              var s = 0.9;
-              var l = 0.6;
+              var h = 0.98;
+              var s = 0.8;
+              var l = 0.5 + Math.random()*0.2;
               candy.material.color.setHSL( h, s, l );
             }
 
